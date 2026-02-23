@@ -14,7 +14,7 @@ const router = createRouter({
         { path: '', component: () => import('../views/DashboardView.vue') },
         {
           path: 'admin/users',
-          component: () => import('../views/DashboardView.vue'), // reemplazar luego
+          component: () => import('../views/admin/UsersView.vue'),
           meta: { requiresRole: 'admin' },
         },
       ],
