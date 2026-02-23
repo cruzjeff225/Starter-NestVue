@@ -1,4 +1,21 @@
 @import './base.css';
+@import "./styles/tokens.css";
+
+
+@layer base {
+  html {
+    @apply font-body;
+    font-size: var(--text-base-size);
+  }
+
+  body {
+    @apply bg-background text-text antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading text-text;
+  }
+}
 
 #app {
   max-width: 1280px;
