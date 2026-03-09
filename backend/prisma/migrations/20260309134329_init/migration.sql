@@ -13,6 +13,7 @@ CREATE TABLE "Usuario" (
     "email" TEXT NOT NULL,
     "contraseña" TEXT NOT NULL,
     "rolId" INTEGER NOT NULL,
+    "activo" BOOLEAN NOT NULL DEFAULT true,
     "creadoEn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Usuario_pkey" PRIMARY KEY ("idUsuario")

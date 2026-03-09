@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prismaService';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -42,20 +46,46 @@ export class UsersService {
 
   // CREAR USUARIO
   async create(data: CreateUserDto) {
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    // Verificar si el email ya existe
+    const existingEmail = await this.prisma.usuario.findUnique({
+      where: { email: data.email },
+    });
+    if (existingEmail)
+      throw new ConflictException('El email ya está registrado');
 
-    const createData: any = {
-      nombre: data.nombre,
-      email: data.email,
-      password: hashedPassword,
-      activo: true,
-    };
-
-    if (data.rolId !== undefined) {
-      createData.rolId = data.rolId; // solo incluir si viene definido
+    // Si no se proporciona un rol, asignar el rol "user" por defecto
+    let rolId: number;
+    if (data.rolId) {
+      rolId = data.rolId;
+    } else {
+      const rolUser = await this.prisma.rol.findUnique({
+        where: { nombre: 'user' },
+      });
+      if (!rolUser) throw new NotFoundException('Rol user no encontrado');
+      rolId = rolUser.idRol;
     }
 
-    return this.prisma.usuario.create({ data: createData });
+    // Encriptar la contraseña antes de guardar
+    const hashedPassword = await bcrypt.hash(data.contraseña, 10);
+
+    const usuario = await this.prisma.usuario.create({
+      data: {
+        nombre: data.nombre,
+        email: data.email,
+        contraseña: hashedPassword,
+        rolId,
+      },
+      select: {
+        idUsuario: true,
+        nombre: true,
+        email: true,
+        activo: true,
+        creadoEn: true,
+        rol: { select: { nombre: true } },
+      },
+    });
+
+    return usuario;
   }
 
   // ACTUALIZAR USUARIO
@@ -66,8 +96,8 @@ export class UsersService {
 
     if (data.nombre !== undefined) updateData.nombre = data.nombre;
     if (data.email !== undefined) updateData.email = data.email;
-    if (data.password !== undefined) {
-      updateData.password = await bcrypt.hash(data.password, 10);
+    if (data.contraseña !== undefined) {
+      updateData.contraseña = await bcrypt.hash(data.contraseña, 10);
     }
     if (data.rolId !== undefined) updateData.rolId = data.rolId;
     if (data.activo !== undefined) updateData.activo = data.activo;
@@ -81,9 +111,17 @@ export class UsersService {
   // ACTIVAR / DESACTIVAR USUARIO
   async toggleUserStatus(id: number) {
     const user = await this.findOne(id);
+
     return this.prisma.usuario.update({
       where: { idUsuario: id },
       data: { activo: !user.activo },
+      select: {
+        idUsuario: true,
+        nombre: true,
+        email: true,
+        rol: { select: { nombre: true } },
+        activo: true,
+      },
     });
   }
 }

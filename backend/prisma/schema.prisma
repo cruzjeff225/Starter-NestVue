@@ -16,7 +16,7 @@ model Usuario {
   idUsuario  Int      @id @default(autoincrement())
   nombre     String
   email      String   @unique
-  password   String
+  contraseña   String
   rolId      Int
   rol        Rol      @relation(fields: [rolId], references: [idRol])
   activo     Boolean  @default(true)

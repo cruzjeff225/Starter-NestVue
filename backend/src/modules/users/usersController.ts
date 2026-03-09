@@ -1,5 +1,16 @@
-import { Controller, Get, Param, Patch, Post, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Body,
+  UseGuards,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { UsersService } from './usersService';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../../common/guards/jwtAuthGuard';
 import { RolesGuard } from '../../rbac/rolesGuard';
 import { Roles } from '../../rbac/rolesDecorator';
@@ -7,7 +18,6 @@ import { Roles } from '../../rbac/rolesDecorator';
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
-
   constructor(private usersService: UsersService) {}
 
   // LISTAR USUARIOS
@@ -27,24 +37,21 @@ export class UsersController {
   // CREAR USUARIO
   @Post()
   @Roles('admin')
-  create(@Body() data: any) {
+  create(@Body() data: CreateUserDto) {
     return this.usersService.create(data);
   }
 
   // EDITAR USUARIO (INCLUYE ROL)
   @Patch(':id')
   @Roles('admin')
-  update(
-    @Param('id') id: string,
-    @Body() data: any
-  ) {
-    return this.usersService.update(Number(id), data);
+  update(@Param('id', ParseIntPipe) id: number, @Body() data: UpdateUserDto) {
+    return this.usersService.update(id, data);
   }
 
   // ACTIVAR / DESACTIVAR USUARIO
   @Patch(':id/toggle-status')
   @Roles('admin')
-  toggleUser(@Param('id') id: string) {
-    return this.usersService.toggleUserStatus(Number(id));
+  toggleUser(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.toggleUserStatus(id);
   }
 }

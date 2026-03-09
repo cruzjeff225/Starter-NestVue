@@ -32,7 +32,7 @@ async function main() {
     create: {
       nombre: 'Administrador',
       email: 'admin@misistema.com',
-      password: await bcrypt.hash('admin123', 10),
+      contraseña: await bcrypt.hash('admin123', 10),
       rolId: adminRol.idRol,
     },
   });
@@ -45,7 +45,7 @@ async function main() {
     create: {
       nombre: 'Usuario',
       email: 'user@misistema.com',
-      password: await bcrypt.hash('user123', 10),
+      contraseña: await bcrypt.hash('user123', 10),
       rolId: userRol.idRol,
     },
   });
