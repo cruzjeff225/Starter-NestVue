@@ -34,7 +34,7 @@ export class AuthService {
       data: {
         nombre,
         email,
-        contraseña: hashedPassword,
+        password: hashedPassword,
         rolId: rolUser.idRol,
       },
       include: {
@@ -51,7 +51,7 @@ export class AuthService {
       include: { rol: true },
     });
 
-    if (!user || !(await bcrypt.compare(contraseña, user.contraseña))) {
+    if (!user || !(await bcrypt.compare(contraseña, user.password))) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
