@@ -34,9 +34,9 @@ export class UsersService {
         idUsuario: true,
         nombre: true,
         email: true,
-        creadoEn: true,
         activo: true,
         rol: { select: { nombre: true } },
+        creadoEn: true,
       },
     });
 
@@ -121,6 +121,38 @@ export class UsersService {
         email: true,
         rol: { select: { nombre: true } },
         activo: true,
+      },
+    });
+  }
+
+  // OBTENER ROLES CON SUS PERMISOS
+  async getRolesWithPermissions() {
+    return this.prisma.rol.findMany({
+      include: {
+        permisos: {
+          include: { permiso: true },
+        },
+      },
+    });
+  }
+
+  // CAMBIAR ROL DE USUARIO
+  async cambiarRol(id: number, rolId: number) {
+    await this.findOne(id);
+
+    return this.prisma.usuario.update({
+      where: { idUsuario: id },
+      data: { rolId },
+      select: {
+        idUsuario: true,
+        nombre: true,
+        email: true,
+        activo: true,
+        rol: {
+          include: {
+            permisos: { include: { permiso: true } },
+          },
+        },
       },
     });
   }

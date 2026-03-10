@@ -7,18 +7,34 @@ datasource db {
 }
 
 model Rol {
-  idRol    Int    @id @default(autoincrement())
-  nombre  String @unique
-  usuarios Usuario[]
+  idRol       Int          @id @default(autoincrement())
+  nombre      String       @unique
+  usuarios    Usuario[]
+  permisos    RolPermiso[]
+}
+
+model Permiso {
+  idPermiso Int          @id @default(autoincrement())
+  nombre    String       @unique
+  roles     RolPermiso[]
+}
+
+model RolPermiso {
+  rolId     Int
+  permisoId Int
+  rol       Rol     @relation(fields: [rolId], references: [idRol])
+  permiso   Permiso @relation(fields: [permisoId], references: [idPermiso])
+
+  @@id([rolId, permisoId])
 }
 
 model Usuario {
   idUsuario  Int      @id @default(autoincrement())
   nombre     String
   email      String   @unique
-  contraseña   String
+  contraseña String
   rolId      Int
-  rol        Rol      @relation(fields: [rolId], references: [idRol])
   activo     Boolean  @default(true)
+  rol        Rol      @relation(fields: [rolId], references: [idRol])
   creadoEn   DateTime @default(now())
 }
