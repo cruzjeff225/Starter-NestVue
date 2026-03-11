@@ -60,6 +60,12 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
+    if (!user.activo) {
+      throw new UnauthorizedException(
+        'Tu cuenta está desactivada. Contacta al administrador.',
+      );
+    }
+
     return this.generateToken(user as UserWithRole);
   }
 
