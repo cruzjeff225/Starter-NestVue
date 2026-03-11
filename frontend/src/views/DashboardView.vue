@@ -3,8 +3,15 @@ import { useAuthStore } from '../stores/authStore'
 
 const auth = useAuthStore()
 
+const etiquetaRol: Record<string, { label: string; descripcion: string }> = {
+  'admin_full': { label: "Administrador Completo", descripcion: "Acceso total al sistema" },
+  'admin_editor': { label: "Administrador Editor", descripcion: "Puede crear y editar usuarios pero no cambiar roles" },
+  'admin_readonly': { label: "Administrador de Solo Lectura", descripcion: "Solo puede ver información, no puede hacer cambios" },
+  'user': { label: "Usuario Estándar", descripcion: "Acceso limitado, sin permisos administrativos" },
+}
+
 const stats = [
-  { label: 'Rol asignado', value: auth.usuario?.rol ?? '—', icon: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>` },
+  { label: 'Rol asignado', value: auth.usuario?.rol ? etiquetaRol[auth.usuario.rol]?.label ?? auth.usuario.rol : '—', icon: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>` },
   { label: 'Estado', value: 'Activo', icon: `<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>` },
   { label: 'Sesión', value: 'En línea', icon: `<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>` },
 ]

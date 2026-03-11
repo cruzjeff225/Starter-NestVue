@@ -37,7 +37,6 @@ function logout() {
         </div>
         <div class="nav-user-info">
           <span class="nav-user-name">{{ auth.usuario?.nombre }}</span>
-          <span class="nav-user-role">{{ auth.usuario?.rol }}</span>
         </div>
       </div>
 

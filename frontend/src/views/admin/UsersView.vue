@@ -170,6 +170,13 @@ const etiquetaPermiso: Record<string, string> = {
   'usuarios:toggle_activo': '🔄  Activar / desactivar usuarios',
 }
 
+const etiquetaRol: Record<string, { label: string; descripcion: string }> = {
+  'admin_full': { label: "Administrador Completo", descripcion: "Acceso total al sistema" },
+  'admin_editor': { label: "Administrador Editor", descripcion: "Puede crear y editar usuarios pero no cambiar roles" },
+  'admin_readonly': { label: "Administrador de Solo Lectura", descripcion: "Solo puede ver información, no puede hacer cambios" },
+  'user': { label: "Usuario Estándar", descripcion: "Acceso limitado, sin permisos administrativos" },
+}
+
 // Toggle activo
 async function toggleActivo(user: Usuario) {
   try {
@@ -259,7 +266,7 @@ onMounted(() => cargarUsuarios())
             <td class="td-email">{{ user.email }}</td>
             <td>
               <span class="role-badge" :class="user.rol.nombre">
-                {{ user.rol.nombre }}
+                {{ etiquetaRol[user.rol.nombre]?.label ?? user.rol.nombre }}
               </span>
             </td>
             <td>
@@ -348,8 +355,8 @@ onMounted(() => cargarUsuarios())
             <div class="field-group">
               <label class="field-label">Rol</label>
               <select v-model="form.rolId" class="field-input">
-                <option v-for="rol in roles" :key="rol.id" :value="rol.id">
-                  {{ rol.nombre }}
+                <option v-for="rol in roles" :key="rol.idRol" :value="Number(rol.idRol)">
+                  {{ etiquetaRol[rol.nombre]?.label ?? rol.nombre }}
                 </option>
               </select>
             </div>
@@ -406,10 +413,14 @@ onMounted(() => cargarUsuarios())
               <label class="field-label">Seleccionar rol</label>
               <div class="roles-list">
                 <button v-for="rol in roles" :key="rol.idRol" class="rol-option"
-                  :class="{ selected: rolSeleccionado === rol.idRol }" @click="rolSeleccionado = rol.idRol">
+                  :class="{ selected: rolSeleccionado === Number(rol.idRol) }"
+                  @click="rolSeleccionado = Number(rol.idRol)">
                   <div class="rol-option-header">
-                    <span class="rol-nombre">{{ rol.nombre }}</span>
-                    <span v-if="rolSeleccionado === rol.idRol" class="rol-check">✓</span>
+                    <div class="rol-info">
+                      <span class="rol-nombre">{{ etiquetaRol[rol.nombre]?.label ?? rol.nombre }}</span>
+                      <span class="rol-desc">{{ etiquetaRol[rol.nombre]?.descripcion }}</span>
+                    </div>
+                    <span v-if="rolSeleccionado === Number(rol.idRol)" class="rol-check">✓</span>
                   </div>
                 </button>
               </div>
@@ -972,6 +983,18 @@ td {
   font-size: 0.85rem;
   color: #6366f1;
   font-weight: 600;
+}
+
+.rol-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rol-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 300;
 }
 
 .permisos-preview {
