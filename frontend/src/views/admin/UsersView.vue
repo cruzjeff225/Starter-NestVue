@@ -77,11 +77,11 @@ function abrirEditar(user: Usuario) {
   form.nombre = user.nombre
   form.email = user.email
   form.contraseña = ''
-  form.rolId = user.rol.nombre === 'admin_full' ? 1
-    : user.rol.nombre === 'admin_editor' ? 2
-      : user.rol.nombre === 'admin_readonly' ? 3
-        : 4
   formError.value = ''
+
+  const rolActual = roles.value.find((r: any) => r.nombre === user.rol.nombre)
+  form.rolId = rolActual ? Number(rolActual.idRol) : roles.value[0]?.idRol
+
   showModal.value = true
 }
 
@@ -194,7 +194,11 @@ function formatFecha(fecha: string) {
   })
 }
 
-onMounted(() => cargarUsuarios())
+onMounted(async () => {
+  await cargarUsuarios()
+  const res = await api.get('/users/roles')
+  roles.value = res.data
+})
 </script>
 
 <template>
