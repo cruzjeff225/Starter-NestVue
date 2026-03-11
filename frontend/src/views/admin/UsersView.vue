@@ -114,7 +114,8 @@ async function guardar() {
     await cargarUsuarios()
     cerrarModal()
   } catch (e: any) {
-    formError.value = e?.response?.data?.message ?? 'Ocurrió un error'
+    const msg = e?.response?.data?.message
+    formError.value = Array.isArray(msg) ? msg[0] : (msg ?? 'Ocurrió un error')
   } finally {
     formLoading.value = false
   }
@@ -165,16 +166,17 @@ function permisosDelRolSeleccionado(): string[] {
 
 const etiquetaPermiso: Record<string, string> = {
   'usuarios:leer': '👁  Ver lista y detalle de usuarios',
+  'usuarios:crear': '➕  Crear nuevos usuarios',
   'usuarios:editar': '✏️  Editar datos básicos de usuarios',
   'usuarios:editar_rol': '🔑  Cambiar rol de usuarios',
   'usuarios:toggle_activo': '🔄  Activar / desactivar usuarios',
 }
 
 const etiquetaRol: Record<string, { label: string; descripcion: string }> = {
-  'admin_full': { label: "Administrador Completo", descripcion: "Acceso total al sistema" },
-  'admin_editor': { label: "Administrador Editor", descripcion: "Puede crear y editar usuarios pero no cambiar roles" },
-  'admin_readonly': { label: "Administrador de Solo Lectura", descripcion: "Solo puede ver información, no puede hacer cambios" },
-  'user': { label: "Usuario Estándar", descripcion: "Acceso limitado, sin permisos administrativos" },
+  admin_full: { label: 'Administrador Completo', descripcion: 'Acceso total al sistema' },
+  admin_editor: { label: 'Administrador Editor', descripcion: 'Puede crear y editar usuarios pero no cambiar roles' },
+  admin_readonly: { label: 'Administrador Solo Lectura', descripcion: 'Solo puede ver información, no puede hacer cambios' },
+  user: { label: 'Usuario Estándar', descripcion: 'Acceso limitado, sin permisos administrativos' },
 }
 
 // Toggle activo
@@ -212,7 +214,7 @@ onMounted(async () => {
       </div>
       <div class="header-right">
         <span class="header-badge">{{ usuarios.length }} usuarios</span>
-        <button v-if="auth.tienePermiso('usuarios:editar')" class="btn-primary" @click="abrirCrear">
+        <button v-if="auth.tienePermiso('usuarios:crear')" class="btn-primary" @click="abrirCrear">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
@@ -282,7 +284,6 @@ onMounted(async () => {
             <td class="td-date">{{ formatFecha(user.creadoEn) }}</td>
             <td>
               <div class="actions">
-                <!-- Editar -->
                 <button v-if="auth.tienePermiso('usuarios:editar')" class="action-btn edit-btn" title="Editar usuario"
                   @click="abrirEditar(user)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -291,7 +292,6 @@ onMounted(async () => {
                   </svg>
                 </button>
 
-                <!-- Cambiar rol -->
                 <button v-if="auth.tienePermiso('usuarios:editar_rol')" class="action-btn rol-btn" title="Cambiar rol"
                   @click="abrirModalRol(user)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -299,7 +299,6 @@ onMounted(async () => {
                   </svg>
                 </button>
 
-                <!-- Toggle activo -->
                 <button v-if="auth.tienePermiso('usuarios:toggle_activo')" class="action-btn"
                   :class="user.activo ? 'deactivate-btn' : 'activate-btn'"
                   :title="user.activo ? 'Desactivar' : 'Activar'" @click="toggleActivo(user)">
@@ -322,11 +321,10 @@ onMounted(async () => {
       </table>
     </div>
 
-    <!-- Modal Crear - Editar -->
+    <!-- Modal Crear / Editar -->
     <Transition name="modal">
       <div v-if="showModal" class="modal-overlay" @click.self="cerrarModal">
         <div class="modal">
-
           <div class="modal-header">
             <h2 class="modal-title">
               {{ editando === null ? 'Nuevo usuario' : 'Editar usuario' }}
@@ -377,9 +375,7 @@ onMounted(async () => {
           <div class="modal-footer">
             <button class="btn-secondary" @click="cerrarModal">Cancelar</button>
             <button class="btn-primary" :disabled="formLoading" @click="guardar">
-              <span v-if="!formLoading">
-                {{ editando === null ? 'Crear usuario' : 'Guardar cambios' }}
-              </span>
+              <span v-if="!formLoading">{{ editando === null ? 'Crear usuario' : 'Guardar cambios' }}</span>
               <span v-else class="btn-loading">
                 <svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   stroke-width="2">
@@ -389,7 +385,6 @@ onMounted(async () => {
               </span>
             </button>
           </div>
-
         </div>
       </div>
     </Transition>
@@ -398,7 +393,6 @@ onMounted(async () => {
     <Transition name="modal">
       <div v-if="showRolModal" class="modal-overlay" @click.self="cerrarModalRol">
         <div class="modal">
-
           <div class="modal-header">
             <div>
               <h2 class="modal-title">Cambiar rol</h2>
@@ -430,7 +424,6 @@ onMounted(async () => {
               </div>
             </div>
 
-            <!-- Permisos del rol seleccionado -->
             <div v-if="rolSeleccionado" class="permisos-preview">
               <p class="permisos-title">Permisos de este rol</p>
               <div v-if="permisosDelRolSeleccionado().length > 0" class="permisos-list">
@@ -438,9 +431,7 @@ onMounted(async () => {
                   {{ etiquetaPermiso[permiso] ?? permiso }}
                 </div>
               </div>
-              <div v-else class="permisos-vacio">
-                Sin permisos asignados
-              </div>
+              <div v-else class="permisos-vacio">Sin permisos asignados</div>
             </div>
 
             <div v-if="rolError" class="form-error">
@@ -466,7 +457,6 @@ onMounted(async () => {
               </span>
             </button>
           </div>
-
         </div>
       </div>
     </Transition>
@@ -703,7 +693,6 @@ td {
   font-weight: 500;
   padding: 3px 10px;
   border-radius: 99px;
-  text-transform: capitalize;
   white-space: nowrap;
 }
 
@@ -805,11 +794,11 @@ td {
   color: #16a34a;
 }
 
-/* Modal base */
+/* Modal overlay */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -818,12 +807,14 @@ td {
   padding: 20px;
 }
 
+/* Modal — usa solo variables CSS para funcionar en ambos modos */
 .modal {
   background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 16px;
   width: 100%;
   max-width: 440px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
   overflow: hidden;
 }
 
@@ -833,6 +824,7 @@ td {
   justify-content: space-between;
   padding: 20px 24px 16px;
   border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
 }
 
 .modal-title {
@@ -874,6 +866,7 @@ td {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  background: var(--bg-card);
 }
 
 .modal-footer {
@@ -882,6 +875,7 @@ td {
   gap: 10px;
   padding: 16px 24px 20px;
   border-top: 1px solid var(--border);
+  background: var(--bg-card);
 }
 
 /* Form fields */
@@ -921,7 +915,7 @@ td {
 .field-input:focus {
   border-color: #6366f1;
   background: var(--bg-card);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
 .field-input::placeholder {
@@ -940,7 +934,7 @@ td {
   padding: 8px 12px;
 }
 
-/* Roles modal */
+/* Roles list — 100% variables CSS, sin colores hardcodeados */
 .roles-list {
   display: flex;
   flex-direction: column;
@@ -949,7 +943,7 @@ td {
 
 .rol-option {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border: 1.5px solid var(--border);
   border-radius: 10px;
   background: var(--bg-app);
@@ -961,13 +955,13 @@ td {
 
 .rol-option:hover {
   border-color: #6366f1;
-  background: #eef2ff;
+  background: var(--bg-hover);
 }
 
 .rol-option.selected {
   border-color: #6366f1;
-  background: #eef2ff;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: var(--bg-hover);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
 .rol-option-header {
@@ -976,23 +970,16 @@ td {
   justify-content: space-between;
 }
 
-.rol-nombre {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  text-transform: capitalize;
-}
-
-.rol-check {
-  font-size: 0.85rem;
-  color: #6366f1;
-  font-weight: 600;
-}
-
 .rol-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.rol-nombre {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
 .rol-desc {
@@ -1001,6 +988,13 @@ td {
   font-weight: 300;
 }
 
+.rol-check {
+  font-size: 0.9rem;
+  color: #6366f1;
+  font-weight: 700;
+}
+
+/* Permisos preview */
 .permisos-preview {
   background: var(--bg-app);
   border: 1px solid var(--border);
