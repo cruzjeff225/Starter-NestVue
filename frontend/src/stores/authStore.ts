@@ -3,16 +3,23 @@ import { ref, computed } from 'vue'
 import api from '../services/api'
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref(localStorage.getItem('token') || '')
+  const token    = ref(localStorage.getItem('token') || '')
   const rawUsuario = localStorage.getItem('usuario')
-  const usuario = ref(rawUsuario && rawUsuario !== 'undefined' ? JSON.parse(rawUsuario) : null)
+  const usuario  = ref(rawUsuario && rawUsuario !== 'undefined'
+    ? JSON.parse(rawUsuario) : null)
 
   const isLoggedIn = computed(() => !!token.value)
-  const isAdmin = computed(() => usuario.value?.rol === 'admin')
+  const isAdmin    = computed(() =>
+    ['admin_readonly', 'admin_editor', 'admin_full'].includes(usuario.value?.rol ?? '')
+  )
+
+  function tienePermiso(permiso: string): boolean {
+    return (usuario.value?.permissions ?? []).includes(permiso)
+  }
 
   async function login(email: string, contraseña: string) {
     const res = await api.post('/auth/login', { email, contraseña })
-    token.value = res.data.access_token
+    token.value   = res.data.access_token
     usuario.value = res.data.user
     localStorage.setItem('token', token.value)
     localStorage.setItem('usuario', JSON.stringify(usuario.value))
@@ -20,18 +27,18 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function register(nombre: string, email: string, contraseña: string) {
     const res = await api.post('/auth/register', { nombre, email, contraseña })
-    token.value = res.data.access_token
+    token.value   = res.data.access_token
     usuario.value = res.data.user
     localStorage.setItem('token', token.value)
     localStorage.setItem('usuario', JSON.stringify(usuario.value))
   }
 
   function logout() {
-    token.value = ''
+    token.value   = ''
     usuario.value = null
     localStorage.removeItem('token')
     localStorage.removeItem('usuario')
   }
 
-  return { token, usuario, isLoggedIn, isAdmin, login, register, logout }
+  return { token, usuario, isLoggedIn, isAdmin, tienePermiso, login, register, logout }
 })
