@@ -19,9 +19,27 @@ const navItems = [
     roles: ['superadmin'],
   },
   {
-  to: '/admin/roles-permisos',
-  label: 'Roles y Permisos',
-  icon: `<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>`,
+    to: '/admin/roles-permisos',
+    label: 'Roles y Permisos',
+    icon: `<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>`,
+    roles: ['superadmin'],
+  },
+  {
+    to: '/admin/habitaciones',
+    label: 'Habitaciones',
+    icon: `<path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/>`,
+    roles: ['superadmin'],
+  },
+
+{
+  to: '/admin/clientes',
+  label: 'Clientes',
+  icon: `<path d="M17 21v-2a4 4 0 0 0-3-3.87"/><path d="M7 21v-2a4 4 0 0 1 3-3.87"/><circle cx="12" cy="7" r="4"/><path d="M5 7a4 4 0 0 0 0 8"/><path d="M19 7a4 4 0 0 1 0 8"/>`,
+  roles: ['superadmin'],
+},
+{to: '/admin/facturacion',
+  label: 'Facturación',
+  icon: `<path d="M21 10h-8l-2-2H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2z"/><line x1="8" y1="21" x2="8" y2="12"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="16" y1="21" x2="16" y2="12"/>`,
   roles: ['superadmin'],
 },
 ]

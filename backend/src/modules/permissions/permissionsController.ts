@@ -12,9 +12,9 @@ import {
 import { PermissionsService } from './permissionsService';
 import { CreatePermissionDto } from './dto/createPermissionDto';
 import { UpdatePermissionDto } from './dto/updatePermissionDto';
-import { JwtAuthGuard } from 'src/common/guards/jwtAuthGuard';
-import { PermissionsGuard } from 'src/common/guards/permissionsGuard';
-import { Permissions } from 'src/common/decorators/permissionsDecorator';
+import { JwtAuthGuard } from '../../common/guards/jwtAuthGuard';
+import { PermissionsGuard } from '../../common/guards/permissionsGuard';
+import { Permissions } from '../../common/decorators/permissionsDecorator';
 
 @Controller('permissions')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
