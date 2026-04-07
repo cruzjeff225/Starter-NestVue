@@ -38,3 +38,30 @@ model Usuario {
   rol        Rol      @relation(fields: [rolId], references: [idRol])
   creadoEn   DateTime @default(now())
 }
+
+model Cliente {
+  idCliente    Int           @id @default(autoincrement())
+  nombre       String
+  apellido     String
+  email        String        @unique
+  telefono     String?
+  direccion    String?
+  departamento String?
+  municipio    String?
+  distrito     String?
+  dui          String?       @unique  // Documento de identidad
+  activo       Boolean       @default(true)
+  creadoEn     DateTime      @default(now())
+  reservaciones Reservacion[]
+}
+
+model Reservacion {
+  idReservacion Int       @id @default(autoincrement())
+  fecha         DateTime
+  descripcion   String?
+  activo        Boolean   @default(true)
+  clienteId     Int
+  cliente       Cliente   @relation(fields: [clienteId], references: [idCliente])
+
+  @@index([clienteId])
+}
