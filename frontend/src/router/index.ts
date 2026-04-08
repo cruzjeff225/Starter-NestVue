@@ -22,6 +22,12 @@ const router = createRouter({
           component: () => import("../views/admin/RolesPermisosView.vue"),
           meta: { requiresAuth: true },
         },
+        {
+          path: "/admin/clientes",
+          name: "Clientes",
+          component: () => import("../views/admin/ClientesView.vue"),
+          meta: { requiresAuth: true, permiso: "clientes:leer" },
+        },
       ],
     },
   ],
