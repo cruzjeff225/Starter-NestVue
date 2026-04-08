@@ -1,7 +1,6 @@
 import {
   IsEmail,
   IsNotEmpty,
-  IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
@@ -20,27 +19,27 @@ export class CreateClienteDto {
   @IsEmail({}, { message: 'Email inválido' })
   email: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'El teléfono es requerido' })
   @IsString()
-  telefono?: string;
+  telefono: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'La dirección es requerida' })
   @IsString()
-  direccion?: string;
+  direccion: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'El departamento es requerido' })
   @IsString()
-  departamento?: string;
+  departamento: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'El municipio es requerido' })
   @IsString()
-  municipio?: string;
+  municipio: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'El distrito es requerido' })
   @IsString()
-  distrito?: string;
+  distrito: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'El DUI es requerido' })
   @IsString()
-  dui?: string;
+  dui: string;
 }

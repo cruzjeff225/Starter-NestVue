@@ -44,12 +44,12 @@ model Cliente {
   nombre       String
   apellido     String
   email        String        @unique
-  telefono     String?
-  direccion    String?
-  departamento String?
-  municipio    String?
-  distrito     String?
-  dui          String?       @unique  // Documento de identidad
+  telefono     String
+  direccion    String
+  departamento String
+  municipio    String
+  distrito     String
+  dui          String        @unique  // Documento de identidad
   activo       Boolean       @default(true)
   creadoEn     DateTime      @default(now())
   reservaciones Reservacion[]
