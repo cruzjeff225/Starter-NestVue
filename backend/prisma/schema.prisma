@@ -65,3 +65,33 @@ model Reservacion {
 
   @@index([clienteId])
 }
+
+enum EstadoHabitacion {
+  disponible
+  ocupada
+  reservada
+  mantenimiento
+}
+
+model TipoHabitacion {
+  idTipo       Int          @id @default(autoincrement())
+  nombre       String       @unique   // "Suite", "Doble", "Simple"
+  precioBase   Decimal      @db.Decimal(10, 2)
+  descripcion  String?
+  habitaciones Habitacion[]
+}
+
+model Habitacion {
+  idHabitacion Int               @id @default(autoincrement())
+  numero       String            @unique   // "101", "202-A"
+  piso         Int
+  capacidad    Int               @default(2)
+  estado       EstadoHabitacion  @default(disponible)
+  amenidades   String[]          // ["wifi", "AC", "TV", "jacuzzi"]
+  imagenUrl    String?
+  descripcion  String?
+  activo       Boolean           @default(true)
+  tipoId       Int
+  tipo         TipoHabitacion    @relation(fields: [tipoId], references: [idTipo])
+  creadoEn     DateTime          @default(now())
+}
