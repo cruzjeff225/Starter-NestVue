@@ -23,4 +23,23 @@ export const clientesApi = {
   toggleActivo: (id: number) => api.patch(`/clientes/${id}/toggle-activo`),
 };
 
+// Habitaciones
+export const habitacionesApi = {
+  getAll: (params?: { search?: string; estado?: string; tipoId?: number }) =>
+    api.get("/habitaciones", { params }),
+  getById: (id: number) => api.get(`/habitaciones/${id}`),
+  create: (data: any) => api.post("/habitaciones", data),
+  update: (id: number, data: any) => api.patch(`/habitaciones/${id}`, data),
+  cambiarEstado: (id: number, estado: string) =>
+    api.patch(`/habitaciones/${id}/estado`, { estado }),
+  toggleActivo: (id: number) => api.patch(`/habitaciones/${id}/toggle-activo`),
+
+  // Tipos
+  getTipos: () => api.get("/habitaciones/tipos/lista"),
+  createTipo: (data: any) => api.post("/habitaciones/tipos", data),
+  updateTipo: (id: number, data: any) =>
+    api.patch(`/habitaciones/tipos/${id}`, data),
+  deleteTipo: (id: number) => api.delete(`/habitaciones/tipos/${id}`),
+};
+
 export default api;

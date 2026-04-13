@@ -49,6 +49,9 @@ const visibleItems = navItems.filter(item =>
         <span>{{ item.label }}</span>
         <div v-if="route.path === item.to" class="active-indicator"></div>
       </RouterLink>
+      <RouterLink v-if="auth.tienePermiso('habitaciones:leer')" to="/admin/habitaciones">
+        🛏 Habitaciones
+      </RouterLink>
 
     </nav>
 

@@ -28,6 +28,12 @@ const router = createRouter({
           component: () => import("../views/admin/ClientesView.vue"),
           meta: { requiresAuth: true, permiso: "clientes:leer" },
         },
+        {
+          path: "/admin/habitaciones",
+          name: "Habitaciones",
+          component: () => import("../views/admin/HabitacionesView.vue"),
+          meta: { requiresAuth: true, permiso: "habitaciones:leer" },
+        },
       ],
     },
   ],
