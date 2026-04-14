@@ -34,6 +34,12 @@ const router = createRouter({
           component: () => import("../views/admin/HabitacionesView.vue"),
           meta: { requiresAuth: true, permiso: "habitaciones:leer" },
         },
+        {
+          path: "/admin/reservaciones",
+          name: "Reservaciones",
+          component: () => import("../views/admin/ReservacionesView.vue"),
+          meta: { requiresAuth: true, permiso: "reservaciones:leer" },
+        },
       ],
     },
   ],

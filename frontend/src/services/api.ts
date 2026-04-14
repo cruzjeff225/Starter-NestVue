@@ -33,6 +33,8 @@ export const habitacionesApi = {
   cambiarEstado: (id: number, estado: string) =>
     api.patch(`/habitaciones/${id}/estado`, { estado }),
   toggleActivo: (id: number) => api.patch(`/habitaciones/${id}/toggle-activo`),
+  getDisponibles: (search?: string) =>
+    api.get("/habitaciones/disponibles", { params: search ? { search } : {} }),
 
   // Tipos
   getTipos: () => api.get("/habitaciones/tipos/lista"),
@@ -40,6 +42,24 @@ export const habitacionesApi = {
   updateTipo: (id: number, data: any) =>
     api.patch(`/habitaciones/tipos/${id}`, data),
   deleteTipo: (id: number) => api.delete(`/habitaciones/tipos/${id}`),
+};
+
+export const reservacionesApi = {
+  getAll: (params?: {
+    search?: string;
+    estado?: string;
+    clienteId?: number;
+    habitacionId?: number;
+    fechaDesde?: string;
+    fechaHasta?: string;
+  }) => api.get("/reservaciones", { params }),
+  getById: (id: number) => api.get(`/reservaciones/${id}`),
+  create: (data: any) => api.post("/reservaciones", data),
+  update: (id: number, data: any) => api.patch(`/reservaciones/${id}`, data),
+  cambiarEstado: (
+    id: number,
+    data: { estado: string; motivoCancelacion?: string },
+  ) => api.patch(`/reservaciones/${id}/estado`, data),
 };
 
 export default api;

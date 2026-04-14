@@ -52,6 +52,9 @@ const visibleItems = navItems.filter(item =>
       <RouterLink v-if="auth.tienePermiso('habitaciones:leer')" to="/admin/habitaciones">
         🛏 Habitaciones
       </RouterLink>
+      <RouterLink v-if="auth.tienePermiso('reservaciones:leer')" to="/admin/reservaciones">
+        📅 Reservaciones
+      </RouterLink>
 
     </nav>
 
