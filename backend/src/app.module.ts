@@ -7,6 +7,7 @@ import { PermissionsModule } from './modules/permissions/permissionsModule';
 import { RolesModule } from './modules/roles/rolesModule';
 import { ClientesModule } from './modules/clientes/clientesModule';
 import { HabitacionesModule } from './modules/rooms/habitacionesModule';
+import { ReservacionesModule } from './modules/reservations/reservacionesModule';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { HabitacionesModule } from './modules/rooms/habitacionesModule';
     RolesModule,
     ClientesModule,
     HabitacionesModule,
+    ReservacionesModule,
   ],
 })
 export class AppModule {}

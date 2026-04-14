@@ -55,17 +55,6 @@ model Cliente {
   reservaciones Reservacion[]
 }
 
-model Reservacion {
-  idReservacion Int       @id @default(autoincrement())
-  fecha         DateTime
-  descripcion   String?
-  activo        Boolean   @default(true)
-  clienteId     Int
-  cliente       Cliente   @relation(fields: [clienteId], references: [idCliente])
-
-  @@index([clienteId])
-}
-
 enum EstadoHabitacion {
   disponible
   ocupada
@@ -93,5 +82,41 @@ model Habitacion {
   activo       Boolean           @default(true)
   tipoId       Int
   tipo         TipoHabitacion    @relation(fields: [tipoId], references: [idTipo])
+  reservaciones Reservacion[]
   creadoEn     DateTime          @default(now())
+}
+
+enum EstadoReservacion {
+  pendiente
+  confirmada
+  en_curso
+  completada
+  cancelada
+  no_show
+}
+
+enum MetodoPago {
+  efectivo
+  tarjeta
+  transferencia
+  otro
+}
+
+model Reservacion {
+  idReservacion    Int                @id @default(autoincrement())
+  fechaEntrada     DateTime
+  fechaSalida      DateTime
+  numHuespedes     Int                @default(1)
+  estado           EstadoReservacion  @default(pendiente)
+  metodoPago       MetodoPago         @default(efectivo)
+  precioNoche      Decimal            @db.Decimal(10, 2)
+  descuento        Decimal            @default(0) @db.Decimal(5, 2)  // porcentaje 0-100
+  totalCalculado   Decimal            @db.Decimal(10, 2)
+  notas            String?
+  motivoCancelacion String?
+  clienteId        Int
+  habitacionId     Int
+  cliente          Cliente            @relation(fields: [clienteId], references: [idCliente])
+  habitacion       Habitacion         @relation(fields: [habitacionId], references: [idHabitacion])
+  creadoEn         DateTime           @default(now())
 }

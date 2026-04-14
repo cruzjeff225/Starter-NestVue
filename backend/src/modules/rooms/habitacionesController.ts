@@ -26,8 +26,6 @@ import { EstadoHabitacion } from '@prisma/client';
 export class HabitacionesController {
   constructor(private readonly service: HabitacionesService) {}
 
-  // ── Habitaciones
-
   @Get()
   @Permissions('habitaciones:leer')
   findAll(
@@ -36,6 +34,18 @@ export class HabitacionesController {
     @Query('tipoId') tipoId?: string,
   ) {
     return this.service.findAll(search, estado, tipoId ? +tipoId : undefined);
+  }
+
+  @Get('tipos/lista')
+  @Permissions('habitaciones:leer')
+  findAllTipos() {
+    return this.service.findAllTipos();
+  }
+
+  @Get('disponibles')
+  @Permissions('habitaciones:leer')
+  findDisponibles(@Query('search') search?: string) {
+    return this.service.findAll(search, EstadoHabitacion.disponible);
   }
 
   @Get(':id')
@@ -72,14 +82,6 @@ export class HabitacionesController {
   @Permissions('habitaciones:toggle_activo')
   toggleActivo(@Param('id', ParseIntPipe) id: number) {
     return this.service.toggleActivo(id);
-  }
-
-  // ── Tipos
-
-  @Get('tipos/lista')
-  @Permissions('habitaciones:leer')
-  findAllTipos() {
-    return this.service.findAllTipos();
   }
 
   @Post('tipos')
