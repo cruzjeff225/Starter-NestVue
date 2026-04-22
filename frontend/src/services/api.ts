@@ -62,4 +62,15 @@ export const reservacionesApi = {
   ) => api.patch(`/reservaciones/${id}/estado`, data),
 };
 
+export const facturacionApi = {
+  getAll: (params?: { search?: string; tipo?: string; estado?: string }) =>
+    api.get("/facturacion", { params }),
+  getById: (id: number) => api.get(`/facturacion/${id}`),
+  getItemsDesdeReservacion: (id: number) =>
+    api.get(`/facturacion/reservacion/${id}/items`),
+  create: (data: any) => api.post("/facturacion", data),
+  anular: (id: number, data: { motivoAnulacion: string }) =>
+    api.patch(`/facturacion/${id}/anular`, data),
+};
+
 export default api;

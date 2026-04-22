@@ -40,6 +40,12 @@ const router = createRouter({
           component: () => import("../views/admin/ReservacionesView.vue"),
           meta: { requiresAuth: true, permiso: "reservaciones:leer" },
         },
+        {
+          path: "/admin/facturacion",
+          name: "Facturacion",
+          component: () => import("../views/admin/FacturacionView.vue"),
+          meta: { requiresAuth: true, permiso: "facturacion:leer" },
+        },
       ],
     },
   ],

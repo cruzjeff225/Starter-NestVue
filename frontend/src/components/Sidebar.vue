@@ -30,6 +30,24 @@ const navItems = [
     icon: `<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>`,
     roles: ['superadmin'],
   },
+  {
+    to: '/admin/habitaciones',
+    label: 'Habitaciones',
+    icon: `<path d="M2 4h20v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"/><path d="M2 10h20"/><path d="M6 4v14"/><path d="M18 4v14"/>`,
+    permission: 'habitaciones:leer',
+  },
+  {
+    to: '/admin/reservaciones',
+    label: 'Reservaciones',
+    icon: `<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>`,
+    permission: 'reservaciones:leer',
+  },
+  {
+    to: '/admin/facturacion',
+    label: 'Facturación',
+    icon: `<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/><line x1="9" y1="14" x2="15" y2="14"/><line x1="9" y1="18" x2="15" y2="18"/>`,
+    permission: 'facturacion:leer',
+  },
 ]
 
 const visibleItems = navItems.filter(item =>
@@ -49,13 +67,6 @@ const visibleItems = navItems.filter(item =>
         <span>{{ item.label }}</span>
         <div v-if="route.path === item.to" class="active-indicator"></div>
       </RouterLink>
-      <RouterLink v-if="auth.tienePermiso('habitaciones:leer')" to="/admin/habitaciones">
-        🛏 Habitaciones
-      </RouterLink>
-      <RouterLink v-if="auth.tienePermiso('reservaciones:leer')" to="/admin/reservaciones">
-        📅 Reservaciones
-      </RouterLink>
-
     </nav>
 
     <div class="sidebar-footer">
