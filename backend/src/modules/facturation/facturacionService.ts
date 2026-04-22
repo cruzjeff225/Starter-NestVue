@@ -113,28 +113,14 @@ export class FacturacionService {
     }));
 
     const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
-    const descuento = 0; // el descuento ya viene aplicado en los ítems de estadía
+    const descuento = 0;
     const subtotalConDesc = subtotal - descuento;
 
-    // Crédito Fiscal: precio sin IVA - IVA desglosado
-    // Consumidor Final: precio con IVA incluido se extrae para mostrar
-    let iva: number;
-    let turismo: number;
-
-    if (dto.tipo === 'credito_fiscal') {
-      // Precios netos - agregar impuestos encima
-      iva = subtotalConDesc * IVA_RATE;
-      turismo = subtotalConDesc * TURISMO_RATE;
-    } else {
-      // Precios con IVA incluido - extraer
-      iva = subtotalConDesc - subtotalConDesc / (1 + IVA_RATE);
-      turismo = subtotalConDesc * TURISMO_RATE; // turismo sobre base
-    }
-
-    const total =
-      dto.tipo === 'credito_fiscal'
-        ? subtotalConDesc + iva + turismo
-        : subtotalConDesc + turismo; // IVA ya incluido en CF
+    // Misma lógica para ambos tipos:
+    // Los precios se ingresan SIN IVA — los impuestos se agregan encima
+    const iva = subtotalConDesc * IVA_RATE; // 13% sobre precio neto
+    const turismo = subtotalConDesc * TURISMO_RATE; // 5% sobre precio neto
+    const total = subtotalConDesc + iva + turismo;
 
     // Generar número correlativo
     const numeroFactura = await this.generarNumero(dto.tipo);
