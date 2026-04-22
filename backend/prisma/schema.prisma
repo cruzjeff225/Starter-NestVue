@@ -53,6 +53,7 @@ model Cliente {
   activo       Boolean       @default(true)
   creadoEn     DateTime      @default(now())
   reservaciones Reservacion[]
+  facturas     Factura[]
 }
 
 enum EstadoHabitacion {
@@ -119,4 +120,61 @@ model Reservacion {
   cliente          Cliente            @relation(fields: [clienteId], references: [idCliente])
   habitacion       Habitacion         @relation(fields: [habitacionId], references: [idHabitacion])
   creadoEn         DateTime           @default(now())
+  factura      Factura?
+}
+
+enum TipoFactura {
+  consumidor_final
+  credito_fiscal
+}
+
+enum EstadoFactura {
+  emitida
+  anulada
+}
+
+model Factura {
+  idFactura        Int            @id @default(autoincrement())
+  numeroFactura    String         @unique   // "CF-0001" | "CCF-0001"
+  tipo             TipoFactura
+  estado           EstadoFactura  @default(emitida)
+  fechaEmision     DateTime       @default(now())
+
+  // Datos del cliente (se copian al momento de emitir, inmutables)
+  clienteNombre    String
+  clienteEmail     String
+  clienteDui       String?
+  // Solo para crédito fiscal
+  clienteNit       String?
+  clienteNrc       String?
+  clienteGiro      String?
+  clienteDireccion String?
+
+  // Totales calculados y almacenados
+  subtotal         Decimal        @db.Decimal(10, 2)
+  descuento        Decimal        @default(0) @db.Decimal(10, 2)
+  subtotalConDesc  Decimal        @db.Decimal(10, 2)
+  iva              Decimal        @db.Decimal(10, 2)   // 13%
+  turismo          Decimal        @db.Decimal(10, 2)   // 5%
+  total            Decimal        @db.Decimal(10, 2)
+
+  motivoAnulacion  String?
+  notas            String?
+
+  clienteId        Int
+  reservacionId    Int?           @unique   // una reservación → una factura
+  cliente          Cliente        @relation(fields: [clienteId], references: [idCliente])
+  reservacion      Reservacion?   @relation(fields: [reservacionId], references: [idReservacion])
+  items            ItemFactura[]
+  creadoEn         DateTime       @default(now())
+}
+
+model ItemFactura {
+  idItem      Int      @id @default(autoincrement())
+  descripcion String
+  cantidad    Int      @default(1)
+  precioUnit  Decimal  @db.Decimal(10, 2)
+  subtotal    Decimal  @db.Decimal(10, 2)  // cantidad × precioUnit
+  facturaId   Int
+  factura     Factura  @relation(fields: [facturaId], references: [idFactura])
 }
