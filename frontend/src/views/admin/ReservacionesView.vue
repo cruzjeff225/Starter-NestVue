@@ -1,635 +1,478 @@
 <template>
-  <div class="reservaciones-page">
-
-    <!-- Header -->
-    <div class="page-header">
+  <div class="reservations">
+    <header class="page-header">
       <div>
-        <h1 class="page-title">Reservaciones</h1>
-        <p class="page-subtitle">Gestión de reservaciones del hotel</p>
+        <p class="overline">Recepcion hotelera</p>
+        <h1>Reservaciones</h1>
+        <span>Gestion de reservas, disponibilidad y estados de estadia.</span>
       </div>
-      <div class="header-right">
-        <span class="header-badge">{{ reservaciones.length }} reservaciones</span>
-        <button v-if="auth.tienePermiso('reservaciones:crear')" class="btn-primary" @click="abrirModal()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Nueva reservación
-        </button>
-      </div>
-    </div>
 
-    <!-- Filtros -->
-    <div class="filters-row">
-      <div class="search-wrapper">
-        <div class="search-icon">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-        </div>
-        <input v-model="filtros.search" type="text" class="search-input"
-          placeholder="Buscar por cliente o habitación..." @input="cargar" />
+      <button v-if="auth.tienePermiso('reservaciones:crear')" class="btn btn-primary" @click="abrirModal()">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Nueva reserva
+      </button>
+    </header>
+
+    <section class="summary-bar">
+      <div v-for="item in resumenOperativo" :key="item.label" class="summary-item">
+        <span>{{ item.label }}</span>
+        <strong>{{ item.value }}</strong>
       </div>
-      <select v-model="filtros.estado" class="filter-select" @change="cargar">
+    </section>
+
+    <section class="filters">
+      <label class="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input v-model="filtros.search" type="text" placeholder="Buscar cliente o habitacion" @input="cargar" />
+      </label>
+
+      <select v-model="filtros.estado" class="input" @change="cargar">
         <option value="">Todos los estados</option>
-        <option v-for="e in estadosMeta" :key="e.value" :value="e.value">{{ e.label }}</option>
+        <option v-for="estado in estadosMeta" :key="estado.value" :value="estado.value">{{ estado.label }}</option>
       </select>
-      <input v-model="filtros.fechaDesde" type="date" class="filter-select" @change="cargar" title="Desde" />
-      <input v-model="filtros.fechaHasta" type="date" class="filter-select" @change="cargar" title="Hasta" />
-    </div>
 
-    <!-- Loading / Error -->
-    <div v-if="loading" class="state-box">
-      <svg class="spin" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-      </svg>
+      <input v-model="filtros.fechaDesde" class="input" type="date" @change="cargar" />
+      <input v-model="filtros.fechaHasta" class="input" type="date" @change="cargar" />
+
+      <button class="btn btn-light" @click="limpiarFiltros">Limpiar</button>
+    </section>
+
+    <div v-if="loading" class="state">
+      <svg class="spin" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
       Cargando reservaciones...
     </div>
-    <div v-else-if="errorGlobal" class="state-box error-box">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      {{ errorGlobal }}
-    </div>
 
-    <!-- Tabla -->
-    <div v-else class="table-card">
-      <table class="res-table">
-        <thead>
-          <tr>
-            <th>#</th><th>Cliente</th><th>Habitación</th><th>Entrada</th>
-            <th>Salida</th><th>Noches</th><th>Total</th><th>Pago</th><th>Estado</th><th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in reservaciones" :key="r.idReservacion">
-            <td class="td-id">{{ r.idReservacion }}</td>
-            <td>
-              <div class="user-cell">
-                <div class="user-avatar">{{ r.cliente.nombre.charAt(0).toUpperCase() }}</div>
-                <div>
-                  <span class="cell-name">{{ r.cliente.nombre }} {{ r.cliente.apellido }}</span>
-                  <span class="cell-sub">{{ r.numHuespedes }} huésped{{ r.numHuespedes > 1 ? 'es' : '' }}</span>
+    <div v-else-if="errorGlobal" class="state state-error">{{ errorGlobal }}</div>
+
+    <section v-else class="table-card">
+      <div class="table-top">
+        <div>
+          <h2>Libro de reservas</h2>
+          <span>{{ reservaciones.length }} registro{{ reservaciones.length === 1 ? '' : 's' }}</span>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Reserva</th>
+              <th>Huesped</th>
+              <th>Habitacion</th>
+              <th>Estadia</th>
+              <th>Total</th>
+              <th>Estado</th>
+              <th class="actions-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="reserva in reservaciones" :key="reserva.idReservacion">
+              <td>
+                <strong class="reservation-code">#{{ reserva.idReservacion }}</strong>
+                <span class="muted">{{ etiquetaMetodo[reserva.metodoPago] }}</span>
+              </td>
+              <td>
+                <div class="guest">
+                  <div class="avatar">{{ iniciales(reserva) }}</div>
+                  <div>
+                    <strong>{{ reserva.cliente.nombre }} {{ reserva.cliente.apellido }}</strong>
+                    <span>{{ reserva.numHuespedes }} huesped{{ reserva.numHuespedes === 1 ? '' : 'es' }}</span>
+                  </div>
                 </div>
-              </div>
-            </td>
-            <td>
-              <div class="hab-cell">
-                <span class="hab-num">{{ r.habitacion.numero }}</span>
-                <span class="cell-sub">{{ r.habitacion.tipo.nombre }}</span>
-              </div>
-            </td>
-            <td class="td-date">{{ formatFecha(r.fechaEntrada) }}</td>
-            <td class="td-date">{{ formatFecha(r.fechaSalida) }}</td>
-            <td class="td-secondary">{{ calcularNoches(r.fechaEntrada, r.fechaSalida) }}n</td>
-            <td class="td-price">
-              <span>${{ formatPrecio(r.totalCalculado) }}</span>
-              <span v-if="Number(r.descuento) > 0" class="descuento-tag">-{{ r.descuento }}%</span>
-            </td>
-            <td><span class="metodo-badge">{{ etiquetaMetodo[r.metodoPago] }}</span></td>
-            <td>
-              <span class="estado-badge" :class="r.estado">
-                <span class="status-dot"></span>
-                {{ estadosMeta.find(e => e.value === r.estado)?.label ?? r.estado }}
-              </span>
-            </td>
-            <td>
-              <div class="actions">
-                <button v-if="auth.tienePermiso('reservaciones:cambiar_estado')"
-                  class="action-btn estado-btn" title="Cambiar estado" @click="abrirModalEstado(r)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-                    <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-                  </svg>
-                </button>
-                <button v-if="auth.tienePermiso('reservaciones:editar') && puedeEditar(r)"
-                  class="action-btn edit-btn" title="Editar" @click="abrirModal(r)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                </button>
-                <button class="action-btn detail-btn" title="Ver detalle" @click="abrirDetalle(r)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-          <tr v-if="reservaciones.length === 0">
-            <td colspan="10" class="empty-state">No se encontraron reservaciones</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+              </td>
+              <td>
+                <strong>{{ reserva.habitacion.numero }}</strong>
+                <span class="muted">{{ reserva.habitacion.tipo.nombre }} · Piso {{ reserva.habitacion.piso }}</span>
+              </td>
+              <td>
+                <strong>{{ formatFecha(reserva.fechaEntrada) }} - {{ formatFecha(reserva.fechaSalida) }}</strong>
+                <span class="muted">{{ calcularNoches(reserva.fechaEntrada, reserva.fechaSalida) }} noche{{ calcularNoches(reserva.fechaEntrada, reserva.fechaSalida) === 1 ? '' : 's' }}</span>
+              </td>
+              <td>
+                <strong>${{ formatPrecio(reserva.totalCalculado) }}</strong>
+                <span v-if="Number(reserva.descuento) > 0" class="muted">Descuento {{ reserva.descuento }}%</span>
+              </td>
+              <td>
+                <span class="status" :class="reserva.estado">
+                  <i></i>{{ labelEstado(reserva.estado) }}
+                </span>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button class="icon-btn" title="Detalle" @click="abrirDetalle(reserva)">
+                    <svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button v-if="auth.tienePermiso('reservaciones:cambiar_estado')" class="icon-btn" title="Cambiar estado" @click="abrirModalEstado(reserva)">
+                    <svg viewBox="0 0 24 24"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                  </button>
+                  <button v-if="auth.tienePermiso('reservaciones:editar') && puedeEditar(reserva)" class="icon-btn" title="Editar" @click="abrirModal(reserva)">
+                    <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
 
-    <!-- ══════════════════════════════════════════════════════
-         MODAL NUEVA / EDITAR RESERVACIÓN — Layout dos paneles
-    ══════════════════════════════════════════════════════ -->
+            <tr v-if="reservaciones.length === 0">
+              <td colspan="7" class="empty">No hay reservaciones con estos filtros.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <Transition name="modal">
       <div v-if="modalAbierto" class="modal-overlay" @click.self="cerrarModal">
-        <div class="modal-reservacion">
-
-          <!-- Cabecera -->
-          <div class="mr-header">
-            <h2 class="mr-title">{{ editando ? 'Editar reservación' : 'Nueva reservación' }}</h2>
-            <button class="modal-close" @click="cerrarModal">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
+        <div class="reservation-modal">
+          <header class="modal-header">
+            <div>
+              <p class="overline">{{ editando ? 'Editar reserva' : 'Nueva reserva' }}</p>
+              <h2>{{ editando ? `Reservacion #${editando.idReservacion}` : 'Crear reservacion' }}</h2>
+            </div>
+            <button class="icon-btn" @click="cerrarModal">
+              <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
-          </div>
+          </header>
 
-          <div class="mr-body">
+          <div class="modal-body">
+            <section class="reservation-form">
+              <div class="form-block">
+                <h3>Datos de estadia</h3>
+                <label class="field">
+                  <span>Cliente</span>
+                  <SearchSelect
+                    v-model="form.clienteId"
+                    :fetch-fn="buscarClientes"
+                    :initial-item="clienteInicial"
+                    value-key="idCliente"
+                    label-key="nombreCompleto"
+                    sub-label-key="email"
+                    placeholder="Buscar cliente"
+                    :min-chars="2"
+                  />
+                </label>
 
-            <!-- ── PANEL IZQUIERDO: formulario ── -->
-            <div class="mr-panel-form">
+                <div class="field-grid">
+                  <label class="field">
+                    <span>Entrada</span>
+                    <input v-model="form.fechaEntrada" type="date" :min="fechaMinimaEntrada" @change="recalcular" />
+                  </label>
+                  <label class="field">
+                    <span>Salida</span>
+                    <input v-model="form.fechaSalida" type="date" :min="fechaMinimaSalida" @change="recalcular" />
+                  </label>
+                </div>
 
-              <p class="section-label">Asignación</p>
-
-              <!-- Cliente -->
-              <div class="field-group">
-                <label class="field-label">Cliente *</label>
-                <SearchSelect
-                  v-model="form.clienteId"
-                  :fetch-fn="buscarClientes"
-                  :initial-item="clienteInicial"
-                  value-key="idCliente"
-                  label-key="nombreCompleto"
-                  sub-label-key="email"
-                  placeholder="Buscar cliente por nombre o email..."
-                  :min-chars="2"
-                />
+                <div class="field-grid">
+                  <label class="field">
+                    <span>Huespedes</span>
+                    <input v-model.number="form.numHuespedes" type="number" min="1" />
+                  </label>
+                  <label class="field">
+                    <span>Pago</span>
+                    <select v-model="form.metodoPago">
+                      <option value="efectivo">Efectivo</option>
+                      <option value="tarjeta">Tarjeta</option>
+                      <option value="transferencia">Transferencia</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </label>
+                </div>
               </div>
 
-              <!-- Habitación seleccionada (resumen) -->
-              <div class="field-group">
-                <label class="field-label">Habitación *</label>
-                <div v-if="habSeleccionada" class="hab-resumen">
-                  <div class="hab-resumen-num">{{ habSeleccionada.numero }}</div>
-                  <div class="hab-resumen-info">
-                    <span class="hab-resumen-tipo">{{ habSeleccionada.tipo?.nombre }}</span>
-                    <span class="hab-resumen-det">Piso {{ habSeleccionada.piso }} · {{ habSeleccionada.capacidad }} pers. · ${{ formatPrecio(habSeleccionada.tipo?.precioBase) }}/noche</span>
+              <div class="form-block">
+                <h3>Habitacion seleccionada</h3>
+                <div v-if="habSeleccionada" class="selected-room">
+                  <div>
+                    <strong>{{ habSeleccionada.numero }}</strong>
+                    <span>{{ habSeleccionada.tipo?.nombre }} · Piso {{ habSeleccionada.piso }}</span>
                   </div>
-                  <button class="hab-resumen-clear" @click="limpiarHabitacion">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                  </button>
+                  <button class="btn btn-light" @click="limpiarHabitacion">Cambiar</button>
                 </div>
-                <div v-else class="hab-hint">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  </svg>
-                  Selecciona una habitación en el panel →
+                <div v-else class="room-placeholder">Selecciona una habitacion disponible.</div>
+              </div>
+
+              <div class="form-block">
+                <h3>Tarifa</h3>
+                <label class="field">
+                  <span>Descuento (%)</span>
+                  <input v-model.number="form.descuento" type="number" min="0" max="100" @input="recalcular" />
+                </label>
+                <label class="field">
+                  <span>Notas internas</span>
+                  <textarea v-model="form.notas" rows="3" placeholder="Notas para recepcion o housekeeping"></textarea>
+                </label>
+
+                <div class="price-box">
+                  <div><span>Noches</span><strong>{{ resumenPrecio.noches }}</strong></div>
+                  <div><span>Precio noche</span><strong>${{ formatPrecio(resumenPrecio.precioNoche) }}</strong></div>
+                  <div><span>Subtotal</span><strong>${{ formatPrecio(resumenPrecio.subtotal) }}</strong></div>
+                  <div v-if="resumenPrecio.descuento > 0"><span>Descuento</span><strong>-${{ formatPrecio(resumenPrecio.montoDescuento) }}</strong></div>
+                  <div class="total"><span>Total</span><strong>${{ formatPrecio(resumenPrecio.total) }}</strong></div>
                 </div>
               </div>
 
-              <p class="section-label">Fechas</p>
-              <div class="form-grid-2">
-                <div class="field-group">
-                  <label class="field-label">Entrada *</label>
-                  <input v-model="form.fechaEntrada" type="date" class="field-input" @change="recalcular" />
-                </div>
-                <div class="field-group">
-                  <label class="field-label">Salida *</label>
-                  <input v-model="form.fechaSalida" type="date" class="field-input" @change="recalcular" />
-                </div>
-              </div>
+              <div v-if="formError" class="error-inline">{{ formError }}</div>
+            </section>
 
-              <p class="section-label">Detalles</p>
-
-              <!-- Número de huéspedes con +/- -->
-              <div class="field-group">
-                <label class="field-label">Número de huéspedes</label>
-                <div class="num-control">
-                  <button class="num-btn" @click="form.numHuespedes = Math.max(1, form.numHuespedes - 1)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                  </button>
-                  <span class="num-val">{{ form.numHuespedes }}</span>
-                  <button class="num-btn" @click="form.numHuespedes++">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Descuento con +/- -->
-              <div class="field-group">
-                <label class="field-label">Descuento (%)</label>
-                <div class="num-control">
-                  <button class="num-btn" @click="form.descuento = Math.max(0, form.descuento - 1); recalcular()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                  </button>
-                  <span class="num-val">{{ form.descuento }}</span>
-                  <button class="num-btn" @click="form.descuento = Math.min(100, form.descuento + 1); recalcular()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Método de pago -->
-              <div class="field-group">
-                <label class="field-label">Método de pago</label>
-                <select v-model="form.metodoPago" class="field-input">
-                  <option value="efectivo">Efectivo</option>
-                  <option value="tarjeta">Tarjeta</option>
-                  <option value="transferencia">Transferencia</option>
-                  <option value="otro">Otro</option>
+            <aside class="room-picker">
+              <div class="room-tools">
+                <label class="search compact">
+                  <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                  <input v-model="habQuery" type="text" placeholder="Buscar habitacion" @input="aplicarFiltrosHab" />
+                </label>
+                <select v-model="ordenHab" class="input" @change="aplicarFiltrosHab">
+                  <option value="numero_asc">Numero asc</option>
+                  <option value="numero_desc">Numero desc</option>
+                  <option value="precio_asc">Precio menor</option>
+                  <option value="precio_desc">Precio mayor</option>
                 </select>
               </div>
 
-              <!-- Notas -->
-              <div class="field-group">
-                <label class="field-label">Notas</label>
-                <input v-model="form.notas" type="text" class="field-input" placeholder="Opcional" />
+              <div class="tabs">
+                <button :class="{ active: filtroDisp === 'disponible' }" @click="setFiltroDisp('disponible')">Disponibles</button>
+                <button :class="{ active: filtroDisp === '' }" @click="setFiltroDisp('')">Todas</button>
+                <button :class="{ active: filtroDisp === 'reservada' }" @click="setFiltroDisp('reservada')">Reservadas</button>
+                <button :class="{ active: filtroDisp === 'ocupada' }" @click="setFiltroDisp('ocupada')">Ocupadas</button>
               </div>
 
-              <!-- Resumen precio -->
-              <div v-if="resumenPrecio.noches > 0" class="precio-resumen">
-                <div class="precio-row">
-                  <span>{{ resumenPrecio.noches }} noche{{ resumenPrecio.noches > 1 ? 's' : '' }} × ${{ formatPrecio(resumenPrecio.precioNoche) }}</span>
-                  <span>${{ formatPrecio(resumenPrecio.subtotal) }}</span>
-                </div>
-                <div v-if="resumenPrecio.descuento > 0" class="precio-row descuento">
-                  <span>Descuento ({{ resumenPrecio.descuento }}%)</span>
-                  <span>-${{ formatPrecio(resumenPrecio.montoDescuento) }}</span>
-                </div>
-                <div class="precio-row total">
-                  <span>Total</span>
-                  <span>${{ formatPrecio(resumenPrecio.total) }}</span>
-                </div>
+              <div class="type-filter">
+                <button :class="{ active: filtroTipo === '' }" @click="setFiltroTipo('')">Todos</button>
+                <button v-for="tipo in tiposUnicos" :key="tipo" :class="{ active: filtroTipo === tipo }" @click="setFiltroTipo(tipo)">
+                  {{ tipo }}
+                </button>
               </div>
 
-              <div v-if="formError" class="form-error">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                {{ formError }}
-              </div>
-            </div>
-
-            <!-- ── PANEL DERECHO: selector de habitaciones ── -->
-            <div class="mr-panel-hab">
-
-              <!-- Buscador -->
-              <div class="hs-search-bar">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input
-                  v-model="habQuery"
-                  type="text"
-                  class="hs-search-input"
-                  placeholder="Buscar habitación..."
-                  @input="aplicarFiltrosHab"
-                />
-                <span class="hs-search-hint">Ej.: 101, suite, piso 2, doble, wifi, jacuzzi</span>
+              <div class="room-count">
+                <span>{{ habFiltradas.length }} habitaciones</span>
+                <span>{{ habitacionesDisponibles }} disponibles</span>
               </div>
 
-              <!-- Filtros rápidos -->
-              <div class="hs-filtros">
-                <!-- Disponibilidad -->
-                <div class="hs-filtro-grupo">
-                  <span class="hs-filtro-label">Disponibilidad</span>
-                  <div class="hs-chips">
-                    <button class="hs-chip" :class="{ active: filtroDisp === '' }" @click="setFiltroDisp('')">Todas</button>
-                    <button class="hs-chip disponible" :class="{ active: filtroDisp === 'disponible' }" @click="setFiltroDisp('disponible')">
-                      <span class="dot-chip verde"></span>Disponibles
-                    </button>
-                    <button class="hs-chip ocupada" :class="{ active: filtroDisp === 'ocupada' }" @click="setFiltroDisp('ocupada')">
-                      <span class="dot-chip rojo"></span>Ocupadas
-                    </button>
-                  </div>
-                </div>
-                <!-- Tipo -->
-                <div class="hs-filtro-grupo">
-                  <span class="hs-filtro-label">Tipo de habitación</span>
-                  <div class="hs-chips">
-                    <button class="hs-chip" :class="{ active: filtroTipo === '' }" @click="setFiltroTipo('')">Todos</button>
-                    <button v-for="tipo in tiposUnicos" :key="tipo" class="hs-chip" :class="{ active: filtroTipo === tipo }" @click="setFiltroTipo(tipo)">
-                      {{ tipo }}
-                    </button>
-                  </div>
-                </div>
-                <!-- Piso -->
-                <div class="hs-filtro-grupo">
-                  <span class="hs-filtro-label">Piso</span>
-                  <div class="hs-chips">
-                    <button class="hs-chip" :class="{ active: filtroPiso === null }" @click="setFiltroPiso(null)">Todos</button>
-                    <button v-for="p in pisosUnicos" :key="p" class="hs-chip" :class="{ active: filtroPiso === p }" @click="setFiltroPiso(p)">
-                      Piso {{ p }}
-                    </button>
-                    <button v-if="pisosUnicos.length >= 4" class="hs-chip" :class="{ active: filtroPiso === 99 }" @click="setFiltroPiso(99)">
-                      Piso 4+
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Contador + ordenamiento -->
-              <div class="hs-list-header">
-                <span class="hs-contador">
-                  Mostrando <strong>{{ habFiltradas.length }}</strong> de <strong>{{ todasHabitaciones.length }}</strong> habitaciones
-                </span>
-                <div class="hs-orden">
-                  <span class="hs-orden-label">Ordenar por</span>
-                  <select v-model="ordenHab" class="hs-orden-select" @change="aplicarFiltrosHab">
-                    <option value="numero_asc">Número (asc)</option>
-                    <option value="numero_desc">Número (desc)</option>
-                    <option value="precio_asc">Precio (menor)</option>
-                    <option value="precio_desc">Precio (mayor)</option>
-                    <option value="piso_asc">Piso (asc)</option>
-                  </select>
-                </div>
-              </div>
-
-              <!-- Lista de habitaciones -->
-              <div class="hs-lista" ref="listaRef">
-                <div v-if="habCargando" class="hs-estado">
-                  <svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                  </svg>
+              <div class="room-list">
+                <div v-if="habCargando" class="state small">
+                  <svg class="spin" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                   Cargando habitaciones...
                 </div>
 
-                <div v-else-if="habFiltradas.length === 0" class="hs-estado">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  </svg>
-                  Sin resultados — ajusta los filtros
-                </div>
-
                 <button
+                  v-for="habitacion in habFiltradas"
                   v-else
-                  v-for="hab in habFiltradas"
-                  :key="hab.idHabitacion"
-                  class="hs-fila"
-                  :class="{
-                    selected: form.habitacionId === hab.idHabitacion,
-                    'no-seleccionable': !esSeleccionable(hab)
-                  }"
-                  @click="seleccionarHabitacion(hab)"
+                  :key="habitacion.idHabitacion"
+                  class="room-card"
+                  :class="{ selected: form.habitacionId === habitacion.idHabitacion, disabled: !esSeleccionable(habitacion) }"
+                  @click="seleccionarHabitacion(habitacion)"
                 >
-                  <!-- Dot de estado -->
-                  <span class="hs-dot" :class="colorDot(hab.estado)"></span>
-
-                  <!-- Número + tipo -->
-                  <div class="hs-fila-main">
-                    <div class="hs-fila-top">
-                      <span class="hs-fila-num">{{ hab.numero }}</span>
-                      <span class="hs-fila-tipo-badge">{{ hab.tipo?.nombre }}</span>
-                    </div>
-                    <div class="hs-fila-meta">
-                      <span>Piso {{ hab.piso }}</span>
-                      <span class="hs-sep">·</span>
-                      <span>{{ hab.capacidad }} personas</span>
-                      <template v-for="a in (hab.amenidades || []).slice(0, 3)" :key="a">
-                        <span class="hs-sep">·</span>
-                        <span>{{ a }}</span>
-                      </template>
-                    </div>
+                  <span class="room-dot" :class="habitacion.estado"></span>
+                  <div>
+                    <strong>{{ habitacion.numero }} <em>{{ habitacion.tipo?.nombre }}</em></strong>
+                    <small>Piso {{ habitacion.piso }} · {{ habitacion.capacidad }} personas</small>
                   </div>
-
-                  <!-- Estado + precio -->
-                  <div class="hs-fila-der">
-                    <span class="hs-estado-badge" :class="hab.estado">
-                      <span v-if="hab.estado === 'ocupada'">● Ocupada</span>
-                      <span v-else-if="hab.estado === 'disponible'">● Disponible</span>
-                      <span v-else-if="hab.estado === 'reservada'">● Reservada</span>
-                      <span v-else-if="hab.estado === 'mantenimiento'">● Mantenimiento</span>
-                    </span>
-                    <span class="hs-precio">${{ formatPrecio(hab.tipo?.precioBase) }}<span class="hs-precio-label"> /noche</span></span>
-                  </div>
-
-                  <!-- Check si seleccionada -->
-                  <div class="hs-fila-arrow">
-                    <svg v-if="form.habitacionId === hab.idHabitacion" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="9 18 15 12 9 6"/>
-                    </svg>
-                  </div>
+                  <b>${{ formatPrecio(habitacion.tipo?.precioBase) }}</b>
                 </button>
+
+                <div v-if="!habCargando && habFiltradas.length === 0" class="empty room-empty">Sin habitaciones disponibles.</div>
               </div>
-            </div>
+            </aside>
           </div>
 
-          <!-- Footer del modal -->
-          <div class="mr-footer">
-            <div class="mr-footer-left">
-              <span v-if="habSeleccionada" class="mr-footer-sel">
-                Habitación seleccionada: <strong>{{ habSeleccionada.numero }} — {{ habSeleccionada.tipo?.nombre }}</strong>
-              </span>
-            </div>
-            <div class="mr-footer-actions">
-              <button class="btn-secondary" @click="cerrarModal">Cancelar</button>
-              <button class="btn-primary" :disabled="guardando || !habSeleccionada" @click="guardar">
-                <span v-if="!guardando">{{ editando ? 'Guardar cambios' : 'Crear reservación' }}</span>
-                <span v-else class="btn-loading">
-                  <svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                  </svg>
-                  Guardando...
-                </span>
-              </button>
-            </div>
-          </div>
+          <footer class="modal-footer">
+            <button class="btn btn-light" @click="cerrarModal">Cancelar</button>
+            <button class="btn btn-primary" :disabled="guardando || !puedeGuardar" @click="guardar">
+              <svg v-if="guardando" class="spin" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              {{ guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Crear reserva' }}
+            </button>
+          </footer>
         </div>
       </div>
     </Transition>
 
-    <!-- ── Modal Cambiar Estado ── -->
     <Transition name="modal">
       <div v-if="modalEstado" class="modal-overlay" @click.self="cerrarModalEstado">
-        <div class="modal">
-          <div class="modal-header">
+        <div class="small-modal">
+          <header class="modal-header">
             <div>
-              <h2 class="modal-title">Cambiar estado</h2>
-              <p class="modal-subtitle">Reservación #{{ reservacionEstado?.idReservacion }} — {{ reservacionEstado?.cliente.nombre }} {{ reservacionEstado?.cliente.apellido }}</p>
+              <p class="overline">Estado de estadia</p>
+              <h2>Reservacion #{{ reservacionEstado?.idReservacion }}</h2>
+              <span>{{ reservacionEstado?.cliente.nombre }} {{ reservacionEstado?.cliente.apellido }}</span>
             </div>
-            <button class="modal-close" @click="cerrarModalEstado">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
+            <button class="icon-btn" @click="cerrarModalEstado">
+              <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </header>
+
+          <div class="status-options">
+            <button v-for="estado in estadosMeta" :key="estado.value" :class="{ active: estadoSeleccionado === estado.value }" @click="estadoSeleccionado = estado.value">
+              <span class="status" :class="estado.value"><i></i>{{ estado.label }}</span>
+              <small>{{ estado.descripcion }}</small>
             </button>
           </div>
-          <div class="modal-body">
-            <div class="estados-list">
-              <button v-for="e in estadosMeta" :key="e.value" class="estado-option"
-                :class="{ selected: estadoSeleccionado === e.value }" @click="estadoSeleccionado = e.value">
-                <div class="estado-option-left">
-                  <span class="estado-dot-lg" :class="e.value"></span>
-                  <div>
-                    <span class="estado-label">{{ e.label }}</span>
-                    <span class="estado-desc">{{ e.descripcion }}</span>
-                  </div>
-                </div>
-                <span v-if="estadoSeleccionado === e.value" class="check-mark">✓</span>
-              </button>
-            </div>
-            <div v-if="estadoSeleccionado === 'cancelada' || estadoSeleccionado === 'no_show'" class="field-group">
-              <label class="field-label">Motivo</label>
-              <input v-model="motivoCancelacion" type="text" class="field-input" placeholder="Opcional" />
-            </div>
-            <div v-if="estadoError" class="form-error">{{ estadoError }}</div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" @click="cerrarModalEstado">Cancelar</button>
-            <button class="btn-primary" :disabled="estadoLoading || !estadoSeleccionado" @click="guardarEstado">
-              <span v-if="!estadoLoading">Guardar estado</span>
-              <span v-else class="btn-loading">
-                <svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                </svg>
-                Guardando...
-              </span>
+
+          <label v-if="estadoSeleccionado === 'cancelada' || estadoSeleccionado === 'no_show'" class="field padded">
+            <span>Motivo</span>
+            <input v-model="motivoCancelacion" type="text" placeholder="Opcional" />
+          </label>
+
+          <div v-if="estadoError" class="error-inline padded-error">{{ estadoError }}</div>
+
+          <footer class="modal-footer">
+            <button class="btn btn-light" @click="cerrarModalEstado">Cancelar</button>
+            <button class="btn btn-primary" :disabled="estadoLoading || !estadoSeleccionado" @click="guardarEstado">
+              {{ estadoLoading ? 'Guardando...' : 'Actualizar' }}
             </button>
-          </div>
+          </footer>
         </div>
       </div>
     </Transition>
 
-    <!-- ── Modal Detalle ── -->
     <Transition name="modal">
       <div v-if="modalDetalle" class="modal-overlay" @click.self="cerrarDetalle">
-        <div class="modal">
-          <div class="modal-header">
+        <div v-if="detalleData" class="small-modal">
+          <header class="modal-header">
             <div>
-              <h2 class="modal-title">Reservación #{{ detalleData?.idReservacion }}</h2>
-              <p class="modal-subtitle">{{ estadosMeta.find(e => e.value === detalleData?.estado)?.label }}</p>
+              <p class="overline">Detalle</p>
+              <h2>Reservacion #{{ detalleData.idReservacion }}</h2>
+              <span>{{ labelEstado(detalleData.estado) }}</span>
             </div>
-            <button class="modal-close" @click="cerrarDetalle">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
+            <button class="icon-btn" @click="cerrarDetalle">
+              <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
+          </header>
+
+          <div class="detail-grid">
+            <div><span>Cliente</span><strong>{{ detalleData.cliente.nombre }} {{ detalleData.cliente.apellido }}</strong><small>{{ detalleData.cliente.email }}</small></div>
+            <div><span>Habitacion</span><strong>{{ detalleData.habitacion.numero }}</strong><small>{{ detalleData.habitacion.tipo.nombre }}</small></div>
+            <div><span>Entrada</span><strong>{{ formatFechaLarga(detalleData.fechaEntrada) }}</strong></div>
+            <div><span>Salida</span><strong>{{ formatFechaLarga(detalleData.fechaSalida) }}</strong></div>
+            <div><span>Huespedes</span><strong>{{ detalleData.numHuespedes }}</strong></div>
+            <div><span>Metodo de pago</span><strong>{{ etiquetaMetodo[detalleData.metodoPago] }}</strong></div>
           </div>
-          <div v-if="detalleData" class="modal-body">
-            <div class="detalle-grid">
-              <div class="detalle-section"><p class="section-label">Cliente</p><p class="detalle-val">{{ detalleData.cliente.nombre }} {{ detalleData.cliente.apellido }}</p><p class="detalle-sub">{{ detalleData.cliente.email }}</p></div>
-              <div class="detalle-section"><p class="section-label">Habitación</p><p class="detalle-val">Nro. {{ detalleData.habitacion.numero }} — Piso {{ detalleData.habitacion.piso }}</p><p class="detalle-sub">{{ detalleData.habitacion.tipo.nombre }}</p></div>
-              <div class="detalle-section"><p class="section-label">Check-in</p><p class="detalle-val">{{ formatFechaLarga(detalleData.fechaEntrada) }}</p></div>
-              <div class="detalle-section"><p class="section-label">Check-out</p><p class="detalle-val">{{ formatFechaLarga(detalleData.fechaSalida) }}</p></div>
-              <div class="detalle-section"><p class="section-label">Huéspedes</p><p class="detalle-val">{{ detalleData.numHuespedes }}</p></div>
-              <div class="detalle-section"><p class="section-label">Método de pago</p><p class="detalle-val">{{ etiquetaMetodo[detalleData.metodoPago] }}</p></div>
-            </div>
-            <div class="precio-resumen">
-              <div class="precio-row"><span>{{ calcularNoches(detalleData.fechaEntrada, detalleData.fechaSalida) }} noches × ${{ formatPrecio(detalleData.precioNoche) }}</span><span>${{ formatPrecio(Number(detalleData.precioNoche) * calcularNoches(detalleData.fechaEntrada, detalleData.fechaSalida)) }}</span></div>
-              <div v-if="Number(detalleData.descuento) > 0" class="precio-row descuento"><span>Descuento ({{ detalleData.descuento }}%)</span><span>-${{ formatPrecio(Number(detalleData.precioNoche) * calcularNoches(detalleData.fechaEntrada, detalleData.fechaSalida) * Number(detalleData.descuento) / 100) }}</span></div>
-              <div class="precio-row total"><span>Total</span><span>${{ formatPrecio(detalleData.totalCalculado) }}</span></div>
-            </div>
-            <div v-if="detalleData.notas" class="detalle-notas"><p class="section-label">Notas</p><p class="detalle-notas-text">{{ detalleData.notas }}</p></div>
-            <div v-if="detalleData.motivoCancelacion" class="detalle-notas cancelacion"><p class="section-label">Motivo de cancelación</p><p class="detalle-notas-text">{{ detalleData.motivoCancelacion }}</p></div>
+
+          <div class="price-box detail-price">
+            <div><span>Noches</span><strong>{{ calcularNoches(detalleData.fechaEntrada, detalleData.fechaSalida) }}</strong></div>
+            <div><span>Precio noche</span><strong>${{ formatPrecio(detalleData.precioNoche) }}</strong></div>
+            <div v-if="Number(detalleData.descuento) > 0"><span>Descuento</span><strong>{{ detalleData.descuento }}%</strong></div>
+            <div class="total"><span>Total</span><strong>${{ formatPrecio(detalleData.totalCalculado) }}</strong></div>
           </div>
+
+          <div v-if="detalleData.notas" class="note"><span>Notas</span>{{ detalleData.notas }}</div>
+          <div v-if="detalleData.motivoCancelacion" class="note danger"><span>Motivo</span>{{ detalleData.motivoCancelacion }}</div>
         </div>
       </div>
     </Transition>
-
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
-import { reservacionesApi, clientesApi, habitacionesApi } from '../../services/api'
+import { clientesApi, habitacionesApi, reservacionesApi } from '../../services/api'
 import SearchSelect from '../../components/SearchSelect.vue'
 
 const auth = useAuthStore()
 
-// Listado
 const reservaciones = ref<any[]>([])
-const loading       = ref(true)
-const errorGlobal   = ref('')
-const filtros       = reactive({ search: '', estado: '', fechaDesde: '', fechaHasta: '' })
+const loading = ref(true)
+const errorGlobal = ref('')
+const filtros = reactive({ search: '', estado: '', fechaDesde: '', fechaHasta: '' })
 
-// Modal reservación
-const modalAbierto  = ref(false)
-const editando      = ref<any>(null)
-const guardando     = ref(false)
-const formError     = ref('')
+const modalAbierto = ref(false)
+const editando = ref<any>(null)
+const guardando = ref(false)
+const formError = ref('')
 const clienteInicial = ref<any>(null)
 
 const formVacio = () => ({
-  clienteId: null as any, habitacionId: null as any,
-  fechaEntrada: '', fechaSalida: '',
-  numHuespedes: 1, metodoPago: 'efectivo',
-  descuento: 0, notas: '',
+  clienteId: null as any,
+  habitacionId: null as any,
+  fechaEntrada: '',
+  fechaSalida: '',
+  numHuespedes: 1,
+  metodoPago: 'efectivo',
+  descuento: 0,
+  notas: '',
 })
+
 const form = ref(formVacio())
 
-// Selector de habitaciones (panel derecho)
 const todasHabitaciones = ref<any[]>([])
-const habFiltradas      = ref<any[]>([])
-const habSeleccionada   = ref<any>(null)
-const habQuery          = ref('')
-const filtroDisp        = ref('')
-const filtroTipo        = ref('')
-const filtroPiso        = ref<number | null>(null)
-const ordenHab          = ref('numero_asc')
-const habCargando       = ref(false)
+const habFiltradas = ref<any[]>([])
+const habSeleccionada = ref<any>(null)
+const habQuery = ref('')
+const filtroDisp = ref('disponible')
+const filtroTipo = ref('')
+const ordenHab = ref('numero_asc')
+const habCargando = ref(false)
 const precioNocheSeleccionado = ref(0)
 
-const tiposUnicos = computed(() => {
-  const t = todasHabitaciones.value.map(h => h.tipo?.nombre).filter(Boolean)
-  return [...new Set(t)].sort()
-})
-
-const pisosUnicos = computed(() => {
-  const p = todasHabitaciones.value.map(h => h.piso).filter(Boolean)
-  return [...new Set(p)].sort((a, b) => a - b).slice(0, 4)
-})
-
-// Modal estado
-const modalEstado       = ref(false)
+const modalEstado = ref(false)
 const reservacionEstado = ref<any>(null)
 const estadoSeleccionado = ref('')
 const motivoCancelacion = ref('')
-const estadoLoading     = ref(false)
-const estadoError       = ref('')
+const estadoLoading = ref(false)
+const estadoError = ref('')
 
-// Modal detalle
 const modalDetalle = ref(false)
-const detalleData  = ref<any>(null)
+const detalleData = ref<any>(null)
 
-// Metadatos
 const estadosMeta = [
-  { value: 'pendiente',    label: 'Pendiente',   descripcion: 'En espera de confirmación' },
-  { value: 'confirmada',   label: 'Confirmada',  descripcion: 'Reservación confirmada' },
-  { value: 'en_curso',     label: 'En curso',    descripcion: 'Huésped actualmente hospedado' },
-  { value: 'completada',   label: 'Completada',  descripcion: 'Estadía finalizada' },
-  { value: 'cancelada',    label: 'Cancelada',   descripcion: 'Reservación cancelada' },
-  { value: 'no_show',      label: 'No show',     descripcion: 'El huésped no se presentó' },
+  { value: 'pendiente', label: 'Pendiente', descripcion: 'En espera de confirmacion' },
+  { value: 'confirmada', label: 'Confirmada', descripcion: 'Reserva garantizada' },
+  { value: 'en_curso', label: 'En casa', descripcion: 'Huesped hospedado' },
+  { value: 'completada', label: 'Completada', descripcion: 'Estadia finalizada' },
+  { value: 'cancelada', label: 'Cancelada', descripcion: 'Reserva anulada' },
+  { value: 'no_show', label: 'No show', descripcion: 'Huesped no se presento' },
 ]
 
 const etiquetaMetodo: Record<string, string> = {
-  efectivo: 'Efectivo', tarjeta: 'Tarjeta',
-  transferencia: 'Transferencia', otro: 'Otro',
+  efectivo: 'Efectivo',
+  tarjeta: 'Tarjeta',
+  transferencia: 'Transferencia',
+  otro: 'Otro',
 }
 
-// Precio resumen
+const resumenOperativo = computed(() => {
+  const total = reservaciones.value.length
+  const activas = reservaciones.value.filter((r) => ['confirmada', 'en_curso'].includes(r.estado)).length
+  const pendientes = reservaciones.value.filter((r) => r.estado === 'pendiente').length
+  const ingresos = reservaciones.value
+    .filter((r) => !['cancelada', 'no_show'].includes(r.estado))
+    .reduce((sum, r) => sum + Number(r.totalCalculado || 0), 0)
+
+  return [
+    { label: 'Reservas', value: total },
+    { label: 'Activas', value: activas },
+    { label: 'Pendientes', value: pendientes },
+    { label: 'Ingreso estimado', value: `$${formatPrecio(ingresos)}` },
+  ]
+})
+
 const resumenPrecio = computed(() => {
   const noches = calcularNoches(form.value.fechaEntrada, form.value.fechaSalida)
   const precioNoche = precioNocheSeleccionado.value
   const subtotal = precioNoche * noches
-  const descuento = form.value.descuento || 0
+  const descuento = Number(form.value.descuento || 0)
   const montoDescuento = subtotal * descuento / 100
-  const total = subtotal - montoDescuento
-  return { noches, precioNoche, subtotal, descuento, montoDescuento, total }
+  return { noches, precioNoche, subtotal, descuento, montoDescuento, total: subtotal - montoDescuento }
 })
 
-// Lifecycle
+const tiposUnicos = computed(() => [...new Set(todasHabitaciones.value.map((h) => h.tipo?.nombre).filter(Boolean))].sort())
+const habitacionesDisponibles = computed(() => todasHabitaciones.value.filter((h) => h.estado === 'disponible').length)
+const fechaMinimaEntrada = computed(() => fechaInput(new Date()))
+const fechaMinimaSalida = computed(() => {
+  if (!form.value.fechaEntrada) return fechaInput(addDays(new Date(), 1))
+  return fechaInput(addDays(parseDateInput(form.value.fechaEntrada), 1))
+})
+const puedeGuardar = computed(() => Boolean(form.value.clienteId && form.value.habitacionId && fechasValidas.value))
+const fechasValidas = computed(() => {
+  if (!form.value.fechaEntrada || !form.value.fechaSalida) return false
+  return !fechaEntradaPasada.value && calcularNoches(form.value.fechaEntrada, form.value.fechaSalida) >= 1
+})
+const fechaEntradaPasada = computed(() => {
+  if (!form.value.fechaEntrada) return false
+  return startOfDay(parseDateInput(form.value.fechaEntrada)) < startOfDay(new Date())
+})
+
 onMounted(() => cargar())
 
-// Listado
 async function cargar() {
   try {
     loading.value = true
@@ -648,84 +491,82 @@ async function cargar() {
   }
 }
 
-// Búsqueda de clientes (SearchSelect)
-async function buscarClientes(search: string) {
-  const { data } = await clientesApi.getAll(search)
-  return data.filter((c: any) => c.activo)
-    .map((c: any) => ({ ...c, nombreCompleto: `${c.nombre} ${c.apellido}` }))
+function limpiarFiltros() {
+  filtros.search = ''
+  filtros.estado = ''
+  filtros.fechaDesde = ''
+  filtros.fechaHasta = ''
+  cargar()
 }
 
-// Carga de habitaciones para el panel
+async function buscarClientes(search: string) {
+  const { data } = await clientesApi.getAll(search)
+  return data
+    .filter((cliente: any) => cliente.activo)
+    .map((cliente: any) => ({ ...cliente, nombreCompleto: `${cliente.nombre} ${cliente.apellido}` }))
+}
+
 async function cargarHabitaciones() {
   habCargando.value = true
   try {
     const { data } = await habitacionesApi.getAll()
-    todasHabitaciones.value = data.filter((h: any) => h.activo)
+    todasHabitaciones.value = data.filter((habitacion: any) => habitacion.activo)
     aplicarFiltrosHab()
   } finally {
     habCargando.value = false
   }
 }
 
-// Filtrado local de habitaciones
 function aplicarFiltrosHab() {
-  const q = habQuery.value.toLowerCase().trim()
+  const query = habQuery.value.trim().toLowerCase()
+  let resultado = todasHabitaciones.value.filter((habitacion) => {
+    if (filtroDisp.value && habitacion.estado !== filtroDisp.value) return false
+    if (filtroTipo.value && habitacion.tipo?.nombre !== filtroTipo.value) return false
+    if (!query) return true
 
-  let resultado = todasHabitaciones.value.filter(h => {
-    if (filtroDisp.value && h.estado !== filtroDisp.value) return false
-    if (filtroTipo.value && h.tipo?.nombre !== filtroTipo.value) return false
-    if (filtroPiso.value !== null) {
-      if (filtroPiso.value === 99 && h.piso < 4) return false
-      if (filtroPiso.value !== 99 && h.piso !== filtroPiso.value) return false
-    }
-    if (q) {
-      const campos = [
-        h.numero, h.tipo?.nombre,
-        `piso ${h.piso}`,
-        ...(h.amenidades || []),
-      ].map(c => String(c).toLowerCase())
-      if (!campos.some(c => c.includes(q))) return false
-    }
-    return true
+    const campos = [
+      habitacion.numero,
+      habitacion.tipo?.nombre,
+      `piso ${habitacion.piso}`,
+      habitacion.vista,
+      habitacion.descripcion,
+      ...(habitacion.amenidades || []),
+    ].map((campo) => String(campo ?? '').toLowerCase())
+
+    return campos.some((campo) => campo.includes(query))
   })
 
-  // Ordenar
   resultado = [...resultado].sort((a, b) => {
     switch (ordenHab.value) {
-      case 'numero_asc':   return a.numero.localeCompare(b.numero, undefined, { numeric: true })
-      case 'numero_desc':  return b.numero.localeCompare(a.numero, undefined, { numeric: true })
-      case 'precio_asc':   return Number(a.tipo?.precioBase) - Number(b.tipo?.precioBase)
-      case 'precio_desc':  return Number(b.tipo?.precioBase) - Number(a.tipo?.precioBase)
-      case 'piso_asc':     return a.piso - b.piso
-      default: return 0
+      case 'numero_desc': return b.numero.localeCompare(a.numero, undefined, { numeric: true })
+      case 'precio_asc': return Number(a.tipo?.precioBase) - Number(b.tipo?.precioBase)
+      case 'precio_desc': return Number(b.tipo?.precioBase) - Number(a.tipo?.precioBase)
+      default: return a.numero.localeCompare(b.numero, undefined, { numeric: true })
     }
   })
 
   habFiltradas.value = resultado
 }
 
-function setFiltroDisp(v: string) { filtroDisp.value = v; aplicarFiltrosHab() }
-function setFiltroTipo(v: string) { filtroTipo.value = v; aplicarFiltrosHab() }
-function setFiltroPiso(v: number | null) { filtroPiso.value = v; aplicarFiltrosHab() }
-
-function esSeleccionable(hab: any) {
-  return hab.estado === 'disponible'
+function setFiltroDisp(value: string) {
+  filtroDisp.value = value
+  aplicarFiltrosHab()
 }
 
-function colorDot(estado: string) {
-  return {
-    disponible: 'dot-verde',
-    reservada:  'dot-azul',
-    ocupada:    'dot-rojo',
-    mantenimiento: 'dot-amarillo',
-  }[estado] ?? 'dot-gris'
+function setFiltroTipo(value: string) {
+  filtroTipo.value = value
+  aplicarFiltrosHab()
 }
 
-function seleccionarHabitacion(hab: any) {
-  if (!esSeleccionable(hab)) return
-  habSeleccionada.value = hab
-  form.value.habitacionId = hab.idHabitacion
-  precioNocheSeleccionado.value = Number(hab.tipo?.precioBase)
+function esSeleccionable(habitacion: any) {
+  return habitacion.estado === 'disponible' || (editando.value && habitacion.idHabitacion === editando.value.habitacionId)
+}
+
+function seleccionarHabitacion(habitacion: any) {
+  if (!esSeleccionable(habitacion)) return
+  habSeleccionada.value = habitacion
+  form.value.habitacionId = habitacion.idHabitacion
+  precioNocheSeleccionado.value = Number(habitacion.tipo?.precioBase ?? 0)
 }
 
 function limpiarHabitacion() {
@@ -734,42 +575,39 @@ function limpiarHabitacion() {
   precioNocheSeleccionado.value = 0
 }
 
-// Modal reservación
-function abrirModal(r?: any) {
-  editando.value = r || null
+function abrirModal(reserva?: any) {
+  editando.value = reserva || null
   formError.value = ''
   habQuery.value = ''
-  filtroDisp.value = 'disponible'
+  filtroDisp.value = reserva ? '' : 'disponible'
   filtroTipo.value = ''
-  filtroPiso.value = null
+  ordenHab.value = 'numero_asc'
 
-  if (r) {
+  if (reserva) {
     clienteInicial.value = {
-      idCliente: r.clienteId,
-      nombre: `${r.cliente.nombre} ${r.cliente.apellido}`,
-      email: r.cliente.email,
-      nombreCompleto: `${r.cliente.nombre} ${r.cliente.apellido}`,
+      idCliente: reserva.clienteId,
+      nombreCompleto: `${reserva.cliente.nombre} ${reserva.cliente.apellido}`,
+      email: reserva.cliente.email,
     }
     habSeleccionada.value = {
-      idHabitacion: r.habitacionId,
-      numero: r.habitacion.numero,
-      piso: r.habitacion.piso,
-      capacidad: r.numHuespedes,
-      amenidades: [],
+      idHabitacion: reserva.habitacionId,
+      numero: reserva.habitacion.numero,
+      piso: reserva.habitacion.piso,
+      capacidad: reserva.numHuespedes,
       estado: 'disponible',
-      tipo: { nombre: r.habitacion.tipo.nombre, precioBase: r.precioNoche },
+      tipo: { nombre: reserva.habitacion.tipo.nombre, precioBase: reserva.precioNoche },
     }
     form.value = {
-      clienteId: r.clienteId,
-      habitacionId: r.habitacionId,
-      fechaEntrada: r.fechaEntrada.split('T')[0],
-      fechaSalida: r.fechaSalida.split('T')[0],
-      numHuespedes: r.numHuespedes,
-      metodoPago: r.metodoPago,
-      descuento: Number(r.descuento),
-      notas: r.notas || '',
+      clienteId: reserva.clienteId,
+      habitacionId: reserva.habitacionId,
+      fechaEntrada: reserva.fechaEntrada.split('T')[0],
+      fechaSalida: reserva.fechaSalida.split('T')[0],
+      numHuespedes: reserva.numHuespedes,
+      metodoPago: reserva.metodoPago,
+      descuento: Number(reserva.descuento),
+      notas: reserva.notas || '',
     }
-    precioNocheSeleccionado.value = Number(r.habitacion.tipo.precioBase)
+    precioNocheSeleccionado.value = Number(reserva.precioNoche ?? reserva.habitacion.tipo.precioBase ?? 0)
   } else {
     clienteInicial.value = null
     habSeleccionada.value = null
@@ -781,48 +619,74 @@ function abrirModal(r?: any) {
   cargarHabitaciones()
 }
 
-function cerrarModal() { modalAbierto.value = false }
+function cerrarModal() {
+  modalAbierto.value = false
+}
 
-function recalcular() { /* reactivo vía computed */ }
+function recalcular() {
+  formError.value = ''
+  if (!form.value.fechaEntrada) return
+
+  if (fechaEntradaPasada.value) {
+    formError.value = 'No se puede reservar una fecha que ya paso.'
+    return
+  }
+
+  if (!form.value.fechaSalida || calcularNoches(form.value.fechaEntrada, form.value.fechaSalida) < 1) {
+    form.value.fechaSalida = fechaMinimaSalida.value
+  }
+}
 
 async function guardar() {
+  if (!puedeGuardar.value) {
+    formError.value = fechaEntradaPasada.value
+      ? 'No se puede reservar una fecha que ya paso.'
+      : 'La reserva minima debe ser de 24 horas y requiere cliente, habitacion y fechas validas.'
+    return
+  }
+
   guardando.value = true
   formError.value = ''
+
   try {
     const payload = {
       ...form.value,
       clienteId: Number(form.value.clienteId),
       habitacionId: Number(form.value.habitacionId),
+      numHuespedes: Number(form.value.numHuespedes),
+      descuento: Number(form.value.descuento || 0),
     }
-    if (editando.value) {
-      await reservacionesApi.update(editando.value.idReservacion, payload)
-    } else {
-      await reservacionesApi.create(payload)
-    }
+
+    if (editando.value) await reservacionesApi.update(editando.value.idReservacion, payload)
+    else await reservacionesApi.create(payload)
+
     cerrarModal()
     cargar()
-  } catch (e: any) {
-    const msg = e?.response?.data?.message
-    formError.value = Array.isArray(msg) ? msg[0] : (msg ?? 'Ocurrió un error')
+  } catch (error: any) {
+    const message = error?.response?.data?.message
+    formError.value = Array.isArray(message) ? message[0] : (message ?? 'Ocurrio un error al guardar la reservacion')
   } finally {
     guardando.value = false
   }
 }
 
-// Modal estado
-function abrirModalEstado(r: any) {
-  reservacionEstado.value = r
-  estadoSeleccionado.value = r.estado
-  motivoCancelacion.value = r.motivoCancelacion || ''
+function abrirModalEstado(reserva: any) {
+  reservacionEstado.value = reserva
+  estadoSeleccionado.value = reserva.estado
+  motivoCancelacion.value = reserva.motivoCancelacion || ''
   estadoError.value = ''
   modalEstado.value = true
 }
-function cerrarModalEstado() { modalEstado.value = false }
+
+function cerrarModalEstado() {
+  modalEstado.value = false
+}
 
 async function guardarEstado() {
   if (!estadoSeleccionado.value || !reservacionEstado.value) return
   estadoLoading.value = true
   estadoError.value = ''
+
   try {
     await reservacionesApi.cambiarEstado(reservacionEstado.value.idReservacion, {
       estado: estadoSeleccionado.value,
@@ -830,28 +694,70 @@ async function guardarEstado() {
     })
     cerrarModalEstado()
     cargar()
-  } catch (e: any) {
-    estadoError.value = e?.response?.data?.message ?? 'Error al cambiar estado'
+  } catch (error: any) {
+    estadoError.value = error?.response?.data?.message ?? 'Error al cambiar el estado'
   } finally {
     estadoLoading.value = false
   }
 }
 
-// Modal detalle
-function abrirDetalle(r: any) { detalleData.value = r; modalDetalle.value = true }
-function cerrarDetalle() { modalDetalle.value = false }
+function abrirDetalle(reserva: any) {
+  detalleData.value = reserva
+  modalDetalle.value = true
+}
 
-// Helpers
+function cerrarDetalle() {
+  modalDetalle.value = false
+}
+
+function labelEstado(estado: string) {
+  return estadosMeta.find((item) => item.value === estado)?.label ?? estado
+}
+
+function iniciales(reserva: any) {
+  return `${reserva.cliente?.nombre?.[0] ?? ''}${reserva.cliente?.apellido?.[0] ?? ''}`.toUpperCase()
+}
+
+function puedeEditar(reserva: any) {
+  return ['pendiente', 'confirmada'].includes(reserva.estado)
+}
+
 function calcularNoches(entrada: string, salida: string): number {
   if (!entrada || !salida) return 0
-  return Math.max(0, Math.ceil((new Date(salida).getTime() - new Date(entrada).getTime()) / 86400000))
+  return Math.max(0, Math.ceil((parseDateInput(salida).getTime() - parseDateInput(entrada).getTime()) / 86400000))
 }
-function puedeEditar(r: any) { return ['pendiente', 'confirmada'].includes(r.estado) }
-function formatPrecio(val: any) { return Number(val ?? 0).toFixed(2) }
+
+function parseDateInput(value: string) {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date)
+  next.setDate(next.getDate() + days)
+  return next
+}
+
+function fechaInput(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatPrecio(value: any) {
+  return Number(value ?? 0).toFixed(2)
+}
+
 function formatFecha(fecha: string) {
   if (!fecha) return ''
-  return new Date(fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
 }
+
 function formatFechaLarga(fecha: string) {
   if (!fecha) return ''
   return new Date(fecha).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
@@ -859,378 +765,855 @@ function formatFechaLarga(fecha: string) {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
 
-.reservaciones-page { font-family: 'Sora', sans-serif; display: flex; flex-direction: column; gap: 24px; max-width: 1300px; }
+.reservations {
+  width: min(1240px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: 'Sora', sans-serif;
+}
 
-/* Header */
-.page-header { display: flex; align-items: center; justify-content: space-between; }
-.page-title { font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin: 0 0 4px; letter-spacing: -0.02em; }
-.page-subtitle { font-size: 0.85rem; color: var(--text-muted); margin: 0; font-weight: 300; }
-.header-right { display: flex; align-items: center; gap: 12px; }
-.header-badge { font-size: 0.8rem; font-weight: 500; color: var(--accent); background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: 99px; padding: 4px 14px; }
-
-/* Botones */
-.btn-primary { display: flex; align-items: center; gap: 6px; padding: 9px 16px; background: linear-gradient(135deg, #6366f1, #818cf8); color: white; border: none; border-radius: 9px; font-size: 0.85rem; font-weight: 500; font-family: 'Sora', sans-serif; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
-.btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(99,102,241,0.4); }
-.btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
-.btn-secondary { display: flex; align-items: center; gap: 6px; padding: 9px 16px; background: var(--bg-card); color: var(--text-secondary); border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.85rem; font-weight: 500; font-family: 'Sora', sans-serif; cursor: pointer; transition: all 0.2s; }
-.btn-secondary:hover { background: var(--bg-hover); }
-.btn-loading { display: flex; align-items: center; gap: 6px; }
-
-/* Filtros listado */
-.filters-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.search-wrapper { position: relative; flex: 1; min-width: 200px; }
-.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center; }
-.search-input { width: 100%; padding: 9px 12px 9px 36px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.875rem; font-family: 'Sora', sans-serif; color: var(--text-primary); background: var(--bg-card); transition: all 0.2s; outline: none; box-sizing: border-box; }
-.search-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
-.search-input::placeholder { color: var(--text-muted); }
-.filter-select { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.85rem; font-family: 'Sora', sans-serif; color: var(--text-primary); background: var(--bg-card); outline: none; cursor: pointer; transition: all 0.2s; }
-.filter-select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
-
-/* Estado boxes */
-.state-box { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 48px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; color: var(--text-muted); font-size: 0.9rem; }
-.error-box { color: #ef4444; background: #fef2f2; border-color: #fecaca; }
-.spin { animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Tabla listado */
-.table-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-.res-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-thead tr { background: var(--bg-app); border-bottom: 1px solid var(--border); }
-th { padding: 12px 16px; text-align: left; font-size: 0.72rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
-tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: var(--bg-hover); }
-td { padding: 12px 16px; color: var(--text-primary); vertical-align: middle; }
-.td-id { color: var(--text-muted); font-size: 0.8rem; width: 40px; }
-.td-secondary { color: var(--text-muted); font-size: 0.82rem; }
-.td-date { color: var(--text-secondary); font-size: 0.82rem; white-space: nowrap; }
-.td-price { font-weight: 500; white-space: nowrap; }
-.user-cell { display: flex; align-items: center; gap: 10px; }
-.user-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg,#6366f1,#a5b4fc); color: white; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.cell-name { display: block; font-size: 0.85rem; }
-.cell-sub { display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
-.hab-cell { display: flex; flex-direction: column; gap: 2px; }
-.hab-num { font-size: 0.82rem; font-weight: 600; background: #eef2ff; color: #6366f1; border: 1px solid #c7d2fe; border-radius: 6px; padding: 2px 8px; display: inline-block; width: fit-content; }
-.descuento-tag { font-size: 0.68rem; font-weight: 500; background: #fef3c7; color: #d97706; border: 1px solid #fde68a; border-radius: 99px; padding: 1px 6px; margin-left: 4px; }
-.metodo-badge { font-size: 0.72rem; font-weight: 500; padding: 3px 10px; border-radius: 99px; background: var(--bg-app); color: var(--text-secondary); border: 1px solid var(--border); }
-.estado-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 500; padding: 3px 10px; border-radius: 99px; }
-.estado-badge.pendiente   { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
-.estado-badge.confirmada  { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-.estado-badge.en_curso    { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-.estado-badge.completada  { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
-.estado-badge.cancelada   { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
-.estado-badge.no_show     { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.actions { display: flex; gap: 6px; }
-.action-btn { width: 30px; height: 30px; border-radius: 7px; border: 1.5px solid var(--border); background: var(--bg-card); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.18s; color: var(--text-muted); }
-.edit-btn:hover    { background: #eef2ff; border-color: #c7d2fe; color: #6366f1; }
-.estado-btn:hover  { background: #fffbeb; border-color: #fde68a; color: #d97706; }
-.detail-btn:hover  { background: #f5f3ff; border-color: #ddd6fe; color: #7c3aed; }
-.empty-state { text-align: center; padding: 48px; color: var(--text-muted); font-size: 0.9rem; }
-
-/* ══════════════════════════════════════════════
-   MODAL DE RESERVACIÓN — DOS PANELES
-══════════════════════════════════════════════ */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-
-.modal-reservacion {
+.page-header,
+.summary-bar,
+.filters,
+.table-card,
+.reservation-modal,
+.small-modal {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  width: 100%;
-  max-width: 1060px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.3);
-  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-/* Cabecera del modal */
-.mr-header {
+.page-header {
+  padding: 22px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 28px 16px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.mr-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin: 0; }
-
-/* Cuerpo: dos paneles */
-.mr-body {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
+  gap: 18px;
 }
 
-/* Panel izquierdo — formulario */
-.mr-panel-form {
-  border-right: 1px solid var(--border);
-  padding: 20px 24px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.mr-panel-form::-webkit-scrollbar { width: 6px; }
-.mr-panel-form::-webkit-scrollbar-track { background: transparent; }
-.mr-panel-form::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-
-/* Panel derecho — habitaciones */
-.mr-panel-hab {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--bg-app);
+.overline {
+  margin: 0 0 5px;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-/* Footer del modal */
-.mr-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 28px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-card);
-  flex-shrink: 0;
-  gap: 12px;
-}
-.mr-footer-left { flex: 1; }
-.mr-footer-sel { font-size: 0.82rem; color: var(--text-secondary); }
-.mr-footer-sel strong { color: var(--text-primary); font-weight: 600; }
-.mr-footer-actions { display: flex; gap: 10px; }
-
-/* Habitación seleccionada (resumen en form) */
-.hab-resumen {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border: 1.5px solid #6366f1;
-  border-radius: 9px;
-  background: #eef2ff;
-}
-.hab-resumen-num { min-width: 40px; height: 28px; border-radius: 6px; background: linear-gradient(135deg,#6366f1,#818cf8); color: white; font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; padding: 0 6px; flex-shrink: 0; }
-.hab-resumen-info { display: flex; flex-direction: column; gap: 1px; flex: 1; }
-.hab-resumen-tipo { font-size: 0.82rem; font-weight: 600; color: #4f46e5; }
-.hab-resumen-det { font-size: 0.72rem; color: #6366f1; }
-.hab-resumen-clear { width: 20px; height: 20px; border-radius: 50%; border: none; background: #c7d2fe; color: #4f46e5; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
-.hab-resumen-clear:hover { background: #fecaca; color: #ef4444; }
-
-.hab-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 1.5px dashed var(--border);
-  border-radius: 9px;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  background: var(--bg-app);
-}
-
-/* +/- controls */
-.num-control { display: flex; align-items: center; gap: 0; border: 1.5px solid var(--border); border-radius: 9px; overflow: hidden; background: var(--bg-app); width: fit-content; }
-.num-btn { width: 34px; height: 36px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
-.num-btn:hover { background: var(--bg-hover); }
-.num-val { min-width: 40px; text-align: center; font-size: 0.875rem; font-weight: 500; color: var(--text-primary); border-left: 1px solid var(--border); border-right: 1px solid var(--border); height: 36px; display: flex; align-items: center; justify-content: center; }
-
-/* Buscador del panel derecho */
-.hs-search-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-card);
-  flex-shrink: 0;
-}
-.hs-search-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-size: 1rem;
-  font-family: 'Sora', sans-serif;
+h1,
+h2,
+h3 {
   color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+h1 {
+  margin: 0 0 5px;
+  font-size: 1.65rem;
+  font-weight: 700;
+}
+
+.page-header span,
+.table-top span,
+.modal-header span,
+.muted {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.btn,
+.icon-btn,
+.tabs button,
+.type-filter button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.16s, border-color 0.16s, color 0.16s, transform 0.16s;
+}
+
+.btn {
+  min-height: 36px;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.btn-primary {
+  background: #111827;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #0f172a;
+  transform: translateY(-1px);
+}
+
+.btn-light {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.btn-light:hover {
+  background: var(--bg-hover);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.summary-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.summary-item {
+  padding: 15px 18px;
+  border-right: 1px solid var(--border);
+}
+
+.summary-item:last-child {
+  border-right: 0;
+}
+
+.summary-item span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.summary-item strong {
+  display: block;
+  margin-top: 7px;
+  color: var(--text-primary);
+  font-size: 1.22rem;
+}
+
+.filters {
+  padding: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.search {
+  position: relative;
+  min-width: 260px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.search.compact {
+  min-width: 220px;
+}
+
+.search svg {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+}
+
+.search input,
+.input,
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.82rem;
   outline: none;
 }
-.hs-search-input::placeholder { color: var(--text-muted); font-weight: 300; }
-.hs-search-hint { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; font-style: italic; }
 
-/* Filtros rápidos */
-.hs-filtros {
+.search input {
+  padding: 0 12px 0 38px;
+}
+
+.input {
+  width: auto;
+  padding: 0 12px;
+}
+
+.search input:focus,
+.input:focus,
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: #64748b;
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.12);
+}
+
+.state {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.state.small {
+  min-height: 110px;
+}
+
+.state-error,
+.error-inline {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.table-top {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-top h2 {
+  margin: 0 0 2px;
+  font-size: 0.98rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 940px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+th {
+  background: var(--bg-app);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+td {
+  color: var(--text-primary);
+  font-size: 0.82rem;
+}
+
+td strong {
+  display: block;
+  font-weight: 600;
+}
+
+tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.reservation-code {
+  font-weight: 700;
+}
+
+.guest {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.guest span {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 0.73rem;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 25px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.status.pendiente { background: #fffbeb; color: #b45309; }
+.status.confirmada { background: #eff6ff; color: #2563eb; }
+.status.en_curso { background: #ecfdf5; color: #047857; }
+.status.completada { background: #f1f5f9; color: #475569; }
+.status.cancelada { background: #fef2f2; color: #dc2626; }
+.status.no_show { background: #f8fafc; color: #64748b; }
+
+.actions-col {
+  width: 112px;
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.icon-btn {
+  width: 31px;
+  height: 31px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+}
+
+.icon-btn:hover {
+  background: var(--bg-hover);
+  border-color: #94a3b8;
+  color: var(--text-primary);
+}
+
+.empty {
+  padding: 42px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.reservation-modal {
+  width: min(1080px, 100%);
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-card);
-  flex-shrink: 0;
+  overflow: hidden;
 }
-.hs-filtro-grupo { display: flex; align-items: center; gap: 10px; }
-.hs-filtro-label { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; min-width: 120px; }
-.hs-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.hs-chip { padding: 4px 12px; border: 1.5px solid var(--border); border-radius: 99px; background: var(--bg-app); font-size: 0.75rem; font-weight: 500; font-family: 'Sora', sans-serif; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
-.hs-chip:hover { border-color: #6366f1; color: #6366f1; }
-.hs-chip.active { border-color: #6366f1; background: #6366f1; color: white; }
-.dot-chip { width: 7px; height: 7px; border-radius: 50%; }
-.dot-chip.verde { background: #16a34a; }
-.dot-chip.rojo  { background: #ef4444; }
 
-/* Contador + ordenamiento */
-.hs-list-header {
+.small-modal {
+  width: min(520px, 100%);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.modal-header,
+.modal-footer {
+  padding: 17px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-card);
-  flex-shrink: 0;
+  gap: 14px;
 }
-.hs-contador { font-size: 0.78rem; color: var(--text-muted); }
-.hs-contador strong { color: var(--text-primary); }
-.hs-orden { display: flex; align-items: center; gap: 6px; }
-.hs-orden-label { font-size: 0.75rem; color: var(--text-muted); }
-.hs-orden-select { padding: 4px 8px; border: 1.5px solid var(--border); border-radius: 7px; font-size: 0.75rem; font-family: 'Sora', sans-serif; color: var(--text-primary); background: var(--bg-app); outline: none; cursor: pointer; }
-.hs-orden-select:focus { border-color: #6366f1; }
 
-/* Lista de habitaciones */
-.hs-lista {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 10px;
+.modal-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.modal-footer {
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+}
+
+.modal-body {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.reservation-form {
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 16px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
 }
-.hs-lista::-webkit-scrollbar { width: 6px; }
-.hs-lista::-webkit-scrollbar-track { background: transparent; }
-.hs-lista::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-.hs-lista::-webkit-scrollbar-thumb:hover { background: #6366f1; }
 
-.hs-estado { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 32px 16px; font-size: 0.85rem; color: var(--text-muted); flex-direction: column; }
+.form-block {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
 
-/* Fila de habitación */
-.hs-fila {
+.form-block h3 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field.padded {
+  padding: 0 20px 16px;
+}
+
+.field span {
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.field input,
+.field select {
+  padding: 0 11px;
+}
+
+.field textarea {
+  min-height: 76px;
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.selected-room,
+.room-placeholder,
+.price-box,
+.note {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-app);
+}
+
+.selected-room {
+  padding: 11px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  padding: 10px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg-card);
-  cursor: pointer;
-  text-align: left;
-  font-family: 'Sora', sans-serif;
-  transition: all 0.15s;
-  width: 100%;
 }
-.hs-fila:hover { border-color: #6366f1; background: var(--bg-hover); }
-.hs-fila.selected { border-color: #6366f1; background: #eef2ff; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
-.hs-fila.no-seleccionable { opacity: 0.6; cursor: not-allowed; }
-.hs-fila.no-seleccionable:hover { border-color: var(--border); background: var(--bg-card); }
 
-/* Dot de estado en fila */
-.hs-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.dot-verde    { background: #16a34a; }
-.dot-azul     { background: #2563eb; }
-.dot-rojo     { background: #ef4444; }
-.dot-amarillo { background: #d97706; }
-.dot-gris     { background: #9ca3af; }
+.selected-room strong,
+.selected-room span {
+  display: block;
+}
 
-/* Contenido principal de la fila */
-.hs-fila-main { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.hs-fila-top { display: flex; align-items: center; gap: 8px; }
-.hs-fila-num { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
-.hs-fila-tipo-badge { font-size: 0.68rem; font-weight: 500; padding: 2px 8px; border-radius: 99px; background: var(--bg-app); color: var(--text-secondary); border: 1px solid var(--border); }
-.hs-fila-meta { font-size: 0.72rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-.hs-sep { opacity: 0.4; }
+.selected-room span,
+.room-placeholder {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
 
-/* Lado derecho de la fila */
-.hs-fila-der { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.room-placeholder {
+  padding: 12px;
+  border-style: dashed;
+}
 
-/* Badge de estado en fila */
-.hs-estado-badge { font-size: 0.7rem; font-weight: 600; padding: 2px 9px; border-radius: 99px; white-space: nowrap; }
-.hs-estado-badge.disponible    { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-.hs-estado-badge.ocupada       { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
-.hs-estado-badge.reservada     { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-.hs-estado-badge.mantenimiento { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.price-box {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-/* Precio en fila */
-.hs-precio { font-size: 0.88rem; font-weight: 700; color: #6366f1; }
-.hs-precio-label { font-size: 0.65rem; font-weight: 400; color: var(--text-muted); }
+.price-box div {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
 
-/* Flecha / check en fila */
-.hs-fila-arrow { display: flex; align-items: center; flex-shrink: 0; color: var(--text-muted); }
+.price-box strong {
+  color: var(--text-primary);
+}
 
-/* Form helpers */
-.section-label { font-size: 0.72rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 0; }
-.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.field-group { display: flex; flex-direction: column; gap: 5px; }
-.field-label { font-size: 0.78rem; font-weight: 500; color: var(--text-secondary); }
-.field-input { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.875rem; font-family: 'Sora', sans-serif; color: var(--text-primary); background: var(--bg-app); transition: all 0.2s; outline: none; }
-.field-input:focus { border-color: #6366f1; background: var(--bg-card); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
-.field-input::placeholder { color: var(--text-muted); }
+.price-box .total {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-weight: 700;
+}
 
-/* Precio resumen */
-.precio-resumen { background: var(--bg-app); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; }
-.precio-row { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text-secondary); }
-.precio-row.descuento { color: #d97706; }
-.precio-row.total { font-size: 0.92rem; font-weight: 600; color: var(--text-primary); border-top: 1px solid var(--border); padding-top: 7px; margin-top: 2px; }
+.error-inline {
+  padding: 10px 12px;
+  border: 1px solid;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
 
-/* Form error */
-.form-error { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #ef4444; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 8px 12px; }
+.padded-error {
+  margin: 0 20px 16px;
+}
 
-/* Modales simples (estado, detalle) */
-.modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,0.35); overflow: hidden; }
-.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 16px; border-bottom: 1px solid var(--border); }
-.modal-title { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 0; }
-.modal-subtitle { font-size: 0.78rem; color: var(--text-muted); margin: 2px 0 0; font-weight: 300; }
-.modal-close { width: 28px; height: 28px; border-radius: 7px; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.18s; }
-.modal-close:hover { background: #fef2f2; border-color: #fecaca; color: #ef4444; }
-.modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; max-height: 65vh; overflow-y: auto; }
-.modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px 20px; border-top: 1px solid var(--border); }
+.room-picker {
+  min-height: 0;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  background: var(--bg-app);
+}
 
-/* Estado modal */
-.estados-list { display: flex; flex-direction: column; gap: 8px; }
-.estado-option { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg-app); cursor: pointer; text-align: left; font-family: 'Sora', sans-serif; transition: all 0.18s; display: flex; align-items: center; justify-content: space-between; }
-.estado-option:hover { border-color: #6366f1; background: var(--bg-hover); }
-.estado-option.selected { border-color: #6366f1; background: var(--bg-hover); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
-.estado-option-left { display: flex; align-items: center; gap: 12px; }
-.estado-dot-lg { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-.estado-dot-lg.pendiente    { background: #d97706; }
-.estado-dot-lg.confirmada   { background: #2563eb; }
-.estado-dot-lg.en_curso     { background: #16a34a; }
-.estado-dot-lg.completada   { background: #7c3aed; }
-.estado-dot-lg.cancelada    { background: #ef4444; }
-.estado-dot-lg.no_show      { background: #9ca3af; }
-.estado-label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
-.estado-desc  { display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: 300; margin-top: 1px; }
-.check-mark   { font-size: 0.9rem; color: #6366f1; font-weight: 700; }
+.room-tools {
+  display: flex;
+  gap: 8px;
+}
 
-/* Detalle */
-.detalle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.detalle-section { display: flex; flex-direction: column; gap: 2px; }
-.detalle-val { font-size: 0.9rem; font-weight: 500; color: var(--text-primary); margin: 0; }
-.detalle-sub { font-size: 0.78rem; color: var(--text-muted); margin: 0; }
-.detalle-notas { background: var(--bg-app); border: 1px solid var(--border); border-radius: 9px; padding: 12px; }
-.detalle-notas.cancelacion { background: #fef2f2; border-color: #fecaca; }
-.detalle-notas-text { font-size: 0.85rem; color: var(--text-secondary); margin: 4px 0 0; }
+.room-tools .input {
+  flex: 0 0 145px;
+}
 
-/* Transitions */
-.modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
-.modal-enter-active .modal,
-.modal-enter-active .modal-reservacion,
-.modal-leave-active .modal,
-.modal-leave-active .modal-reservacion { transition: transform 0.2s ease; }
-.modal-enter-from, .modal-leave-to { opacity: 0; }
-.modal-enter-from .modal,
-.modal-enter-from .modal-reservacion,
-.modal-leave-to .modal,
-.modal-leave-to .modal-reservacion { transform: scale(0.97) translateY(8px); }
+.tabs,
+.type-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tabs button,
+.type-filter button {
+  min-height: 29px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.tabs button.active,
+.type-filter button.active {
+  background: #111827;
+  border-color: #111827;
+  color: white;
+}
+
+.room-count {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.room-card {
+  width: 100%;
+  padding: 11px;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.room-card:hover {
+  border-color: #94a3b8;
+}
+
+.room-card.selected {
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.1);
+}
+
+.room-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.room-card strong {
+  display: block;
+  font-size: 0.84rem;
+}
+
+.room-card em {
+  color: var(--text-muted);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.room-card small {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.room-card b {
+  color: var(--text-primary);
+  font-size: 0.84rem;
+}
+
+.room-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.room-dot.disponible { background: #059669; }
+.room-dot.reservada { background: #2563eb; }
+.room-dot.ocupada { background: #dc2626; }
+.room-dot.mantenimiento { background: #d97706; }
+
+.room-empty {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+}
+
+.status-options {
+  padding: 17px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-options button {
+  padding: 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-app);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.status-options button.active {
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.1);
+}
+
+.status-options small {
+  color: var(--text-muted);
+}
+
+.detail-grid {
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.detail-grid div {
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-app);
+}
+
+.detail-grid span,
+.note span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detail-grid strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.84rem;
+}
+
+.detail-grid small {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+}
+
+.detail-price,
+.note {
+  margin: 0 20px 16px;
+}
+
+.note {
+  padding: 12px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.note.danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.18s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+:global(.dark) .page-header,
+:global(.dark) .summary-bar,
+:global(.dark) .filters,
+:global(.dark) .table-card,
+:global(.dark) .reservation-modal,
+:global(.dark) .small-modal {
+  background: #111827;
+  border-color: #243044;
+}
+
+:global(.dark) th,
+:global(.dark) .room-picker,
+:global(.dark) .selected-room,
+:global(.dark) .room-placeholder,
+:global(.dark) .price-box,
+:global(.dark) .note,
+:global(.dark) .detail-grid div,
+:global(.dark) .status-options button {
+  background: #0f172a;
+}
+
+:global(.dark) .btn-primary,
+:global(.dark) .tabs button.active,
+:global(.dark) .type-filter button.active {
+  background: #e2e8f0;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+@media (max-width: 980px) {
+  .summary-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-item:nth-child(2) {
+    border-right: 0;
+  }
+
+  .modal-body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .reservation-form {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 640px) {
+  .page-header,
+  .filters,
+  .room-tools,
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .summary-bar,
+  .field-grid,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-item {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-item:last-child {
+    border-bottom: 0;
+  }
+
+  .input,
+  .room-tools .input {
+    width: 100%;
+    flex: auto;
+  }
+}
 </style>

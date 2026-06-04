@@ -7,6 +7,7 @@ import {
   Body,
   UseGuards,
   ParseIntPipe,
+  Request,
 } from '@nestjs/common';
 import { UsersService } from './usersService';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -20,46 +21,40 @@ import { Permissions } from '../../common/decorators/permissionsDecorator';
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
-  // LISTAR USUARIOS
   @Get()
   @Permissions('usuarios:leer')
   findAll() {
     return this.usersService.findAll();
   }
 
-  // OBTENER ROLES Y PERMISOS
   @Get('roles')
   @Permissions('usuarios:editar_rol')
   getRoles() {
     return this.usersService.getRolesWithPermissions();
   }
 
-  // VER PERFIL
   @Get(':id')
   @Permissions('usuarios:leer')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(Number(id));
   }
 
-  // CREAR USUARIO
   @Post()
   @Permissions('usuarios:crear')
   create(@Body() data: CreateUserDto) {
     return this.usersService.create(data);
   }
 
-  // EDITAR USUARIO (INCLUYE ROL)
   @Patch(':id')
   @Permissions('usuarios:editar')
   update(@Param('id', ParseIntPipe) id: number, @Body() data: UpdateUserDto) {
     return this.usersService.update(id, data);
   }
 
-  // ACTIVAR / DESACTIVAR USUARIO
   @Patch(':id/toggle_activo')
   @Permissions('usuarios:toggle_activo')
-  toggleUser(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.toggleUserStatus(id);
+  toggleUser(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
+    return this.usersService.toggleUserStatus(id, req.user.userId ?? req.user.sub);
   }
 
   @Patch(':id/rol')

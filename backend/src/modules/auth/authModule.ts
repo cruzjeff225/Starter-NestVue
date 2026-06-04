@@ -13,14 +13,10 @@ import { JwtStrategy } from './strategies/jwtStrategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        const secret = config.get<string>('JWT_SECRET') as string;
-        console.log('JWT_SECRET cargado:', secret);
-        return {
-          secret,
-          signOptions: { expiresIn: '7d' as const },
-        };
-      },
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '7d' as const },
+      }),
     }),
   ],
   providers: [AuthService, JwtStrategy],

@@ -9,6 +9,7 @@ import { ClientesModule } from './modules/clientes/clientesModule';
 import { HabitacionesModule } from './modules/rooms/habitacionesModule';
 import { ReservacionesModule } from './modules/reservations/reservacionesModule';
 import { FacturacionModule } from './modules/facturation/facturacionModule';
+import { DashboardModule } from './modules/dashboard/dashboardModule';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { FacturacionModule } from './modules/facturation/facturacionModule';
     HabitacionesModule,
     ReservacionesModule,
     FacturacionModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:3000",
 });
 
 // Agrega el token automáticamente en cada request
@@ -63,14 +63,23 @@ export const reservacionesApi = {
 };
 
 export const facturacionApi = {
-  getAll: (params?: { search?: string; tipo?: string; estado?: string }) =>
-    api.get("/facturacion", { params }),
+  getAll: (params?: {
+    search?: string;
+    tipo?: string;
+    estado?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get("/facturacion", { params }),
   getById: (id: number) => api.get(`/facturacion/${id}`),
   getItemsDesdeReservacion: (id: number) =>
     api.get(`/facturacion/reservacion/${id}/items`),
   create: (data: any) => api.post("/facturacion", data),
   anular: (id: number, data: { motivoAnulacion: string }) =>
     api.patch(`/facturacion/${id}/anular`, data),
+};
+
+export const dashboardApi = {
+  getStats: () => api.get("/dashboard/stats"),
 };
 
 export default api;

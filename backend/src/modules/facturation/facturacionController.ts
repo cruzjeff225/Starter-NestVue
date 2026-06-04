@@ -28,8 +28,16 @@ export class FacturacionController {
     @Query('search') search?: string,
     @Query('tipo') tipo?: TipoFactura,
     @Query('estado') estado?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.service.findAll({ search, tipo, estado });
+    return this.service.findAll({
+      search,
+      tipo,
+      estado,
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 20,
+    });
   }
 
   @Get('reservacion/:id/items')
