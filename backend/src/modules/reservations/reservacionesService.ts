@@ -84,14 +84,10 @@ export class ReservacionesService {
       ...rest
     } = dto;
 
-    const entrada = new Date(fechaEntrada);
-    const salida = new Date(fechaSalida);
+    const entrada = this.parseReservationDate(fechaEntrada);
+    const salida = this.parseReservationDate(fechaSalida);
 
-    if (salida <= entrada) {
-      throw new BadRequestException(
-        'La fecha de salida debe ser posterior a la de entrada',
-      );
-    }
+    this.validarRangoFechas(entrada, salida, true);
 
     // Verificar disponibilidad de habitación
     await this.verificarDisponibilidad(habitacionId, entrada, salida);
@@ -137,19 +133,15 @@ export class ReservacionesService {
     const reservacion = await this.findOne(idReservacion);
 
     const entrada = dto.fechaEntrada
-      ? new Date(dto.fechaEntrada)
+      ? this.parseReservationDate(dto.fechaEntrada)
       : reservacion.fechaEntrada;
     const salida = dto.fechaSalida
-      ? new Date(dto.fechaSalida)
+      ? this.parseReservationDate(dto.fechaSalida)
       : reservacion.fechaSalida;
     const habitacionId = dto.habitacionId ?? reservacion.habitacionId;
     const descuento = dto.descuento ?? Number(reservacion.descuento);
 
-    if (salida <= entrada) {
-      throw new BadRequestException(
-        'La fecha de salida debe ser posterior a la de entrada',
-      );
-    }
+    this.validarRangoFechas(entrada, salida, Boolean(dto.fechaEntrada));
 
     // Reverificar disponibilidad si cambian fechas o habitación
     if (dto.fechaEntrada || dto.fechaSalida || dto.habitacionId) {
@@ -240,6 +232,38 @@ export class ReservacionesService {
   private calcularNoches(entrada: Date, salida: Date): number {
     const diff = salida.getTime() - entrada.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }
+
+  private parseReservationDate(value: string): Date {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const [year, month, day] = value.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    return new Date(value);
+  }
+
+  private startOfDay(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+
+  private validarRangoFechas(
+    entrada: Date,
+    salida: Date,
+    validarEntradaFutura: boolean,
+  ) {
+    if (Number.isNaN(entrada.getTime()) || Number.isNaN(salida.getTime())) {
+      throw new BadRequestException('Las fechas de la reservacion son invalidas');
+    }
+
+    if (validarEntradaFutura && this.startOfDay(entrada) < this.startOfDay(new Date())) {
+      throw new BadRequestException('No se puede reservar una fecha que ya paso');
+    }
+
+    const horas = salida.getTime() - entrada.getTime();
+    if (horas < 1000 * 60 * 60 * 24) {
+      throw new BadRequestException('La reservacion minima debe ser de 24 horas');
+    }
   }
 
   private async verificarDisponibilidad(

@@ -1,16 +1,12 @@
 import {
-  IsNotEmpty,
-  IsString,
-  IsInt,
-  IsOptional,
-  IsEnum,
-  IsArray,
-  IsUrl,
-  Min,
-  IsBoolean,
+  IsNotEmpty, IsString, IsInt, IsOptional,
+  IsEnum, IsArray, IsNumber, Min, IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { EstadoHabitacion } from '@prisma/client';
+
+const VISTAS_VALIDAS = ['mar', 'ciudad', 'jardin', 'piscina', 'montania', 'ninguna'] as const;
+const CERCANIAS_VALIDAS = ['piscina', 'restaurante', 'spa', 'gym', 'playa', 'bar'] as const;
 
 export class CreateHabitacionDto {
   @IsNotEmpty({ message: 'El número de habitación es requerido' })
@@ -47,4 +43,15 @@ export class CreateHabitacionDto {
   @Type(() => Number)
   @IsInt({ message: 'El tipo es requerido' })
   tipoId: number;
+
+  // Campos de ubicación/precio
+  @IsOptional()
+  @IsString()
+  @IsIn(VISTAS_VALIDAS, { message: 'Vista inválida' })
+  vista?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  cercaniasStr?: string[];
 }

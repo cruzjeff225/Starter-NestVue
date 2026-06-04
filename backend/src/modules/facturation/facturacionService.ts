@@ -43,23 +43,36 @@ export class FacturacionService {
     search?: string;
     tipo?: TipoFactura;
     estado?: string;
+    page?: number;
+    limit?: number;
   }) {
-    const { search, tipo, estado } = params ?? {};
-    return this.prisma.factura.findMany({
-      where: {
-        ...(tipo && { tipo }),
-        ...(estado && { estado: estado as any }),
-        ...(search && {
-          OR: [
-            { numeroFactura: { contains: search, mode: 'insensitive' } },
-            { clienteNombre: { contains: search, mode: 'insensitive' } },
-            { clienteEmail: { contains: search, mode: 'insensitive' } },
-          ],
-        }),
-      },
-      include: this.include,
-      orderBy: { fechaEmision: 'desc' },
-    });
+    const { search, tipo, estado, page = 1, limit = 20 } = params ?? {};
+    const skip = (page - 1) * limit;
+
+    const where = {
+      ...(tipo && { tipo }),
+      ...(estado && { estado: estado as any }),
+      ...(search && {
+        OR: [
+          { numeroFactura: { contains: search, mode: 'insensitive' as const } },
+          { clienteNombre: { contains: search, mode: 'insensitive' as const } },
+          { clienteEmail: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }),
+    };
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.factura.findMany({
+        where,
+        include: this.include,
+        orderBy: { fechaEmision: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.factura.count({ where }),
+    ]);
+
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findOne(idFactura: number) {
@@ -72,24 +85,28 @@ export class FacturacionService {
   }
 
   async create(dto: CreateFacturaDto) {
-    // Validar cliente
     const cliente = await this.prisma.cliente.findUnique({
       where: { idCliente: dto.clienteId },
     });
     if (!cliente) throw new NotFoundException('Cliente no encontrado');
 
-    // Validar crédito fiscal — requiere NIT
     if (dto.tipo === 'credito_fiscal' && !dto.clienteNit) {
       throw new BadRequestException('El NIT es requerido para Crédito Fiscal');
     }
 
-    // Validar reservación si viene
     if (dto.reservacionId) {
       const reservacion = await this.prisma.reservacion.findUnique({
         where: { idReservacion: dto.reservacionId },
       });
       if (!reservacion)
         throw new NotFoundException('Reservación no encontrada');
+
+      // Solo reservaciones completadas pueden facturarse
+      if (reservacion.estado !== 'completada') {
+        throw new BadRequestException(
+          'Solo se pueden facturar reservaciones completadas',
+        );
+      }
 
       const yaFacturada = await this.prisma.factura.findUnique({
         where: { reservacionId: dto.reservacionId },
@@ -104,7 +121,6 @@ export class FacturacionService {
       throw new BadRequestException('La factura debe tener al menos un ítem');
     }
 
-    // Calcular totales
     const items = dto.items.map((i) => ({
       descripcion: i.descripcion,
       cantidad: i.cantidad,
@@ -116,13 +132,24 @@ export class FacturacionService {
     const descuento = 0;
     const subtotalConDesc = subtotal - descuento;
 
-    // Misma lógica para ambos tipos:
-    // Los precios se ingresan SIN IVA — los impuestos se agregan encima
-    const iva = subtotalConDesc * IVA_RATE; // 13% sobre precio neto
-    const turismo = subtotalConDesc * TURISMO_RATE; // 5% sobre precio neto
-    const total = subtotalConDesc + iva + turismo;
+    // Para consumidor_final: precio incluye IVA → desglosar
+    // Para crédito_fiscal: precio excluye IVA → agregar encima
+    let iva: number;
+    let turismo: number;
+    let total: number;
 
-    // Generar número correlativo
+    if (dto.tipo === 'consumidor_final') {
+      // Precios con IVA incluido; desglosar los impuestos
+      iva = subtotalConDesc - subtotalConDesc / (1 + IVA_RATE);
+      turismo = subtotalConDesc * TURISMO_RATE;
+      total = subtotalConDesc + turismo;
+    } else {
+      // crédito_fiscal: precios netos, se agregan impuestos
+      iva = subtotalConDesc * IVA_RATE;
+      turismo = subtotalConDesc * TURISMO_RATE;
+      total = subtotalConDesc + iva + turismo;
+    }
+
     const numeroFactura = await this.generarNumero(dto.tipo);
 
     return this.prisma.factura.create({
@@ -163,7 +190,6 @@ export class FacturacionService {
     });
   }
 
-  // Precargar ítems desde una reservación
   async getItemsDesdeReservacion(idReservacion: number) {
     const r = await this.prisma.reservacion.findUnique({
       where: { idReservacion },
@@ -183,9 +209,16 @@ export class FacturacionService {
     const subtotal = precioNoche * noches;
     const monto = subtotal * (1 - descPct / 100);
 
+    // Check if this reservacion already has an invoice
+    const facturaExistente = await this.prisma.factura.findUnique({
+      where: { reservacionId: idReservacion },
+      select: { idFactura: true, numeroFactura: true, estado: true },
+    });
+
     return {
       reservacion: r,
       cliente: r.cliente,
+      facturaExistente,
       items: [
         {
           descripcion: `Estadía — Habitación ${r.habitacion.numero} (${r.habitacion.tipo.nombre}) · ${noches} noche${noches > 1 ? 's' : ''}${descPct > 0 ? ` · Descuento ${descPct}%` : ''}`,

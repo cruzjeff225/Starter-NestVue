@@ -15,36 +15,36 @@ const router = createRouter({
         {
           path: "admin/users",
           component: () => import("../views/admin/UsersView.vue"),
-          meta: { requiresRole: "admin" },
+          meta: { permiso: "usuarios:leer" },
         },
         {
           path: "/admin/roles-permisos",
           component: () => import("../views/admin/RolesPermisosView.vue"),
-          meta: { requiresAuth: true },
+          meta: { permiso: "roles:leer" },
         },
         {
           path: "/admin/clientes",
           name: "Clientes",
           component: () => import("../views/admin/ClientesView.vue"),
-          meta: { requiresAuth: true, permiso: "clientes:leer" },
+          meta: { permiso: "clientes:leer" },
         },
         {
           path: "/admin/habitaciones",
           name: "Habitaciones",
           component: () => import("../views/admin/HabitacionesView.vue"),
-          meta: { requiresAuth: true, permiso: "habitaciones:leer" },
+          meta: { permiso: "habitaciones:leer" },
         },
         {
           path: "/admin/reservaciones",
           name: "Reservaciones",
           component: () => import("../views/admin/ReservacionesView.vue"),
-          meta: { requiresAuth: true, permiso: "reservaciones:leer" },
+          meta: { permiso: "reservaciones:leer" },
         },
         {
           path: "/admin/facturacion",
           name: "Facturacion",
           component: () => import("../views/admin/FacturacionView.vue"),
-          meta: { requiresAuth: true, permiso: "facturacion:leer" },
+          meta: { permiso: "facturacion:leer" },
         },
       ],
     },
@@ -53,8 +53,13 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const auth = useAuthStore();
+
   if (to.meta.requiresAuth && !auth.isLoggedIn) return "/login";
-  if (to.meta.requiresRole === "admin" && !auth.isAdmin) return "/";
+
+  // Unified permission guard — superadmin bypasses all
+  if (to.meta.permiso) {
+    if (!auth.tienePermiso(to.meta.permiso as string)) return "/";
+  }
 });
 
 export default router;

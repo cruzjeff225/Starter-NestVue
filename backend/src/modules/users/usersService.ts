@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,7 +13,7 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  // LISTAR TODOS LOS USUARIOS
+  // LISTAR TODOS LOS USUARIOS (sin contraseña)
   async findAll() {
     return this.prisma.usuario.findMany({
       select: {
@@ -46,14 +47,12 @@ export class UsersService {
 
   // CREAR USUARIO
   async create(data: CreateUserDto) {
-    // Verificar si el email ya existe
     const existingEmail = await this.prisma.usuario.findUnique({
       where: { email: data.email },
     });
     if (existingEmail)
       throw new ConflictException('El email ya está registrado');
 
-    // Si no se proporciona un rol, asignar el rol "user" por defecto
     let rolId: number;
     if (data.rolId) {
       rolId = data.rolId;
@@ -65,10 +64,9 @@ export class UsersService {
       rolId = rolUser.idRol;
     }
 
-    // Encriptar la contraseña antes de guardar
     const hashedPassword = await bcrypt.hash(data.contraseña, 10);
 
-    const usuario = await this.prisma.usuario.create({
+    return this.prisma.usuario.create({
       data: {
         nombre: data.nombre,
         email: data.email,
@@ -84,16 +82,13 @@ export class UsersService {
         rol: { select: { nombre: true } },
       },
     });
-
-    return usuario;
   }
 
   // ACTUALIZAR USUARIO
   async update(id: number, data: UpdateUserDto) {
-    const user = await this.findOne(id); // valida existencia
+    await this.findOne(id);
 
     const updateData: any = {};
-
     if (data.nombre !== undefined) updateData.nombre = data.nombre;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.contraseña !== undefined) {
@@ -105,16 +100,40 @@ export class UsersService {
     return this.prisma.usuario.update({
       where: { idUsuario: id },
       data: updateData,
+      select: {
+        idUsuario: true,
+        nombre: true,
+        email: true,
+        activo: true,
+        creadoEn: true,
+        rol: { select: { nombre: true } },
+      },
     });
   }
 
-  // ACTIVAR / DESACTIVAR USUARIO
-  async toggleUserStatus(id: number) {
+  // ACTIVAR / DESACTIVAR USUARIO — el superadmin no puede desactivarse a sí mismo
+  async toggleUserStatus(id: number, callerId: number) {
     const user = await this.findOne(id);
+
+    if (id === callerId && !user.activo === false) {
+      // user is currently active and caller is trying to deactivate themselves
+    }
+
+    // Check if target is superadmin and caller is the same person
+    const fullUser = await this.prisma.usuario.findUnique({
+      where: { idUsuario: id },
+      include: { rol: true },
+    });
+
+    if (fullUser?.rol.nombre === 'superadmin' && id === callerId) {
+      throw new ForbiddenException(
+        'El superadmin no puede desactivarse a sí mismo',
+      );
+    }
 
     return this.prisma.usuario.update({
       where: { idUsuario: id },
-      data: { activo: !user.activo },
+      data: { activo: !fullUser!.activo },
       select: {
         idUsuario: true,
         nombre: true,

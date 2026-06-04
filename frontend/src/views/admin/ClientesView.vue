@@ -1,68 +1,44 @@
 <template>
   <div class="clientes-page">
-
-    <!-- Header -->
     <div class="page-header">
       <div>
         <h1 class="page-title">Clientes</h1>
-        <p class="page-subtitle">Gestión de clientes del sistema</p>
+        <p class="page-subtitle">Gestion de clientes nacionales y extranjeros</p>
       </div>
       <div class="header-right">
         <span class="header-badge">{{ clientes.length }} clientes</span>
         <button v-if="auth.tienePermiso('clientes:crear')" class="btn-primary" @click="abrirModal()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+          <span class="btn-icon">+</span>
           Nuevo cliente
         </button>
       </div>
     </div>
 
-    <!-- Búsqueda -->
     <div class="search-wrapper">
-      <div class="search-icon">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-      </div>
-      <input v-model="busqueda" type="text" class="search-input" placeholder="Buscar por nombre, email o DUI..."
-        @input="buscar" />
+      <input
+        v-model="busqueda"
+        type="text"
+        class="search-input"
+        placeholder="Buscar por nombre, email, DUI, documento o pais..."
+        @input="buscar"
+      />
     </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="state-box">
-      <svg class="spin" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-      </svg>
-      Cargando clientes...
-    </div>
+    <div v-if="loading" class="state-box">Cargando clientes...</div>
+    <div v-else-if="errorGlobal" class="state-box error-box">{{ errorGlobal }}</div>
 
-    <!-- Error -->
-    <div v-else-if="errorGlobal" class="state-box error-box">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="12" />
-        <line x1="12" y1="16" x2="12.01" y2="16" />
-      </svg>
-      {{ errorGlobal }}
-    </div>
-
-    <!-- Tabla -->
     <div v-else class="table-card">
       <table class="clientes-table">
         <thead>
           <tr>
             <th>#</th>
             <th>Cliente</th>
+            <th>Tipo</th>
             <th>Email</th>
-            <th>Teléfono</th>
-            <th>DUI</th>
-            <th>Dirección</th>
-            <th>Departamento - Municipio</th>
+            <th>Telefono</th>
+            <th>Documento</th>
+            <th>Ubicacion</th>
             <th>Estado</th>
-            <th>Registrado</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -79,266 +55,364 @@
                 </span>
               </div>
             </td>
-            <td class="td-email">{{ c.email }}</td>
-            <td class="td-secondary">{{ c.telefono || '—' }}</td>
-            <td class="td-secondary">{{ formatDui(c.dui) || '—' }}</td>
-            <td class="td-secondary">{{ c.direccion || '—' }}</td>
-            <td class="td-secondary">{{ c.departamento || '—' }} - {{ c.municipio || '—' }}</td>
+            <td>
+              <span class="type-badge" :class="c.tipoCliente || 'nacional'">
+                {{ c.tipoCliente === 'extranjero' ? 'Extranjero' : 'Nacional' }}
+              </span>
+            </td>
+            <td class="td-secondary">{{ c.email }}</td>
+            <td class="td-secondary">{{ c.telefono || '-' }}</td>
+            <td class="td-secondary">
+              {{ c.tipoCliente === 'extranjero' ? c.documento || '-' : formatDui(c.dui) || '-' }}
+            </td>
+            <td class="td-secondary">{{ ubicacionCliente(c) }}</td>
             <td>
               <span class="status-badge" :class="c.activo ? 'activo' : 'inactivo'">
-                <span class="status-dot"></span>
                 {{ c.activo ? 'Activo' : 'Inactivo' }}
               </span>
             </td>
-            <td class="td-date">{{ formatFecha(c.creadoEn) }}</td>
             <td>
               <div class="actions">
-                <button v-if="auth.tienePermiso('clientes:editar')" class="action-btn edit-btn" title="Editar cliente"
-                  @click="abrirModal(c)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
+                <button
+                  v-if="auth.tienePermiso('clientes:editar')"
+                  class="action-btn edit-btn"
+                  title="Editar cliente"
+                  @click="abrirModal(c)"
+                >
+                  Editar
                 </button>
-                <button v-if="auth.tienePermiso('clientes:toggle_activo')" class="action-btn"
-                  :class="c.activo ? 'deactivate-btn' : 'activate-btn'" :title="c.activo ? 'Desactivar' : 'Activar'"
-                  @click="toggleActivo(c)">
-                  <svg v-if="c.activo" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="8" y1="12" x2="16" y2="12" />
-                  </svg>
-                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="16" />
-                    <line x1="8" y1="12" x2="16" y2="12" />
-                  </svg>
+                <button
+                  v-if="auth.tienePermiso('clientes:toggle_activo')"
+                  class="action-btn"
+                  :class="c.activo ? 'deactivate-btn' : 'activate-btn'"
+                  @click="toggleActivo(c)"
+                >
+                  {{ c.activo ? 'Desactivar' : 'Activar' }}
                 </button>
               </div>
             </td>
           </tr>
           <tr v-if="clientes.length === 0">
-            <td colspan="10" class="empty-state">No se encontraron clientes</td>
+            <td colspan="9" class="empty-state">No se encontraron clientes</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Modal Crear / Editar -->
     <Transition name="modal">
       <div v-if="modalAbierto" class="modal-overlay" @click.self="cerrarModal">
         <div class="modal">
           <div class="modal-header">
-            <h2 class="modal-title">
-              {{ clienteEditando ? 'Editar cliente' : 'Nuevo cliente' }}
-            </h2>
-            <button class="modal-close" @click="cerrarModal">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+            <h2 class="modal-title">{{ clienteEditando ? 'Editar cliente' : 'Nuevo cliente' }}</h2>
+            <button class="modal-close" @click="cerrarModal">x</button>
           </div>
 
           <div class="modal-body">
             <div class="form-grid">
+              <div class="field-group full">
+                <label class="field-label">Tipo de cliente</label>
+                <div class="segmented">
+                  <button
+                    type="button"
+                    :class="{ active: form.tipoCliente === 'nacional' }"
+                    @click="setTipoCliente('nacional')"
+                  >
+                    Nacional
+                  </button>
+                  <button
+                    type="button"
+                    :class="{ active: form.tipoCliente === 'extranjero' }"
+                    @click="setTipoCliente('extranjero')"
+                  >
+                    Extranjero
+                  </button>
+                </div>
+              </div>
+
               <div class="field-group">
                 <label class="field-label">Nombre</label>
-                <input v-model="form.nombre" type="text" class="field-input" placeholder="Nombre del cliente"
-                  required />
+                <input v-model="form.nombre" type="text" class="field-input" />
               </div>
               <div class="field-group">
                 <label class="field-label">Apellido</label>
-                <input v-model="form.apellido" type="text" class="field-input" placeholder="Apellido del cliente"
-                  required />
+                <input v-model="form.apellido" type="text" class="field-input" />
               </div>
               <div class="field-group">
-                <label class="field-label">Correo electrónico</label>
-                <input v-model="form.email" type="email" class="field-input" placeholder="correo@ejemplo.com"
-                  required />
+                <label class="field-label">Correo electronico</label>
+                <input v-model="form.email" type="email" class="field-input" />
               </div>
               <div class="field-group">
-                <label class="field-label">Teléfono</label>
-                <input v-model="form.telefono" type="text" class="field-input" placeholder="Teléfono del cliente"
-                  required />
+                <label class="field-label">Telefono</label>
+                <input v-model="form.telefono" type="text" class="field-input" />
               </div>
-              <div class="field-group">
-                <label class="field-label">DUI</label>
-                <input v-model="form.dui" type="text" class="field-input" placeholder="########-#"
-                  @input="formatDuiInput" required />
-              </div>
-              <div class="field-group">
-                <label class="field-label">Dirección</label>
-                <input v-model="form.direccion" type="text" class="field-input" placeholder="Dirección del cliente"
-                  required />
-              </div>
-              <div class="field-group">
-                <label class="field-label">Departamento</label>
-                <input v-model="form.departamento" type="text" class="field-input" placeholder="Departamento"
-                  required />
-              </div>
-              <div class="field-group">
-                <label class="field-label">Municipio</label>
-                <input v-model="form.municipio" type="text" class="field-input" placeholder="Municipio" required />
-              </div>
-              <div class="field-group">
-                <label class="field-label">Distrito</label>
-                <input v-model="form.distrito" type="text" class="field-input" placeholder="Distrito" required />
+
+              <template v-if="form.tipoCliente === 'nacional'">
+                <div class="field-group">
+                  <label class="field-label">DUI</label>
+                  <input
+                    v-model="form.dui"
+                    type="text"
+                    class="field-input"
+                    placeholder="########-#"
+                    @input="formatDuiInput"
+                  />
+                </div>
+                <div class="field-group">
+                  <label class="field-label">Departamento</label>
+                  <select v-model="form.departamento" class="field-input" @change="onDepartamentoChange">
+                    <option value="">Seleccione departamento</option>
+                    <option v-for="departamento in departamentosElSalvador" :key="departamento" :value="departamento">
+                      {{ departamento }}
+                    </option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label class="field-label">Municipio</label>
+                  <select v-model="form.municipio" class="field-input" :disabled="!form.departamento" @change="onMunicipioChange">
+                    <option value="">Seleccione municipio</option>
+                    <option v-for="municipio in municipiosDisponibles" :key="municipio" :value="municipio">
+                      {{ municipio }}
+                    </option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label class="field-label">Distrito</label>
+                  <select v-model="form.distrito" class="field-input" :disabled="!form.municipio">
+                    <option value="">Seleccione distrito</option>
+                    <option v-for="distrito in distritosDisponibles" :key="distrito" :value="distrito">
+                      {{ distrito }}
+                    </option>
+                  </select>
+                </div>
+              </template>
+
+              <template v-else>
+                <div class="field-group">
+                  <label class="field-label">Pais</label>
+                  <input v-model="form.pais" type="text" class="field-input" placeholder="Pais de origen" />
+                </div>
+                <div class="field-group">
+                  <label class="field-label">Documento</label>
+                  <input v-model="form.documento" type="text" class="field-input" placeholder="Pasaporte u otro ID" />
+                </div>
+              </template>
+
+              <div class="field-group full">
+                <label class="field-label">Direccion</label>
+                <input v-model="form.direccion" type="text" class="field-input" />
               </div>
             </div>
 
-            <div v-if="formError" class="form-error">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              {{ formError }}
-            </div>
+            <div v-if="formError" class="form-error">{{ formError }}</div>
           </div>
 
           <div class="modal-footer">
             <button class="btn-secondary" @click="cerrarModal">Cancelar</button>
             <button class="btn-primary" :disabled="guardando" @click="guardar">
-              <span v-if="!guardando">{{ clienteEditando ? 'Guardar cambios' : 'Crear cliente' }}</span>
-              <span v-else class="btn-loading">
-                <svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                </svg>
-                Guardando...
-              </span>
+              {{ guardando ? 'Guardando...' : clienteEditando ? 'Guardar cambios' : 'Crear cliente' }}
             </button>
           </div>
         </div>
       </div>
     </Transition>
-
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useAuthStore } from '../../stores/authStore'
-import { clientesApi } from '../../services/api'
+import { computed, onMounted, ref } from 'vue';
+import { useAuthStore } from '../../stores/authStore';
+import { clientesApi } from '../../services/api';
+import {
+  departamentosElSalvador,
+  distritosPorMunicipio,
+  municipiosPorDepartamento,
+} from '../../data/ubicacionesElSalvador';
 
-const auth = useAuthStore()
+type TipoCliente = 'nacional' | 'extranjero';
 
-const clientes = ref<any[]>([])
-const loading = ref(true)
-const errorGlobal = ref('')
-
-const modalAbierto = ref(false)
-const clienteEditando = ref<any>(null)
-const guardando = ref(false)
-const formError = ref('')
-const busqueda = ref('')
+const auth = useAuthStore();
+const clientes = ref<any[]>([]);
+const loading = ref(true);
+const errorGlobal = ref('');
+const modalAbierto = ref(false);
+const clienteEditando = ref<any>(null);
+const guardando = ref(false);
+const formError = ref('');
+const busqueda = ref('');
 
 const formVacio = () => ({
   nombre: '',
   apellido: '',
   email: '',
   telefono: '',
+  tipoCliente: 'nacional' as TipoCliente,
+  pais: 'El Salvador',
   dui: '',
+  documento: '',
   direccion: '',
   departamento: '',
-  distrito: '',
   municipio: '',
-})
-const form = ref(formVacio())
+  distrito: '',
+});
 
-onMounted(() => cargar())
+const form = ref(formVacio());
+
+const municipiosDisponibles = computed(() =>
+  municipiosPorDepartamento(form.value.departamento),
+);
+
+const distritosDisponibles = computed(() =>
+  distritosPorMunicipio(form.value.departamento, form.value.municipio),
+);
+
+onMounted(() => cargar());
 
 async function cargar(search?: string) {
   try {
-    loading.value = true
-    errorGlobal.value = ''
-    const { data } = await clientesApi.getAll(search)
-    clientes.value = data
+    loading.value = true;
+    errorGlobal.value = '';
+    const { data } = await clientesApi.getAll(search);
+    clientes.value = data;
   } catch {
-    errorGlobal.value = 'No se pudieron cargar los clientes'
+    errorGlobal.value = 'No se pudieron cargar los clientes';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function buscar() {
-  cargar(busqueda.value || undefined)
+  cargar(busqueda.value || undefined);
 }
 
 function abrirModal(cliente?: any) {
-  clienteEditando.value = cliente || null
-  formError.value = ''
+  clienteEditando.value = cliente || null;
+  formError.value = '';
   form.value = cliente
     ? {
-      nombre: cliente.nombre,
-      apellido: cliente.apellido,
-      email: cliente.email,
-      telefono: cliente.telefono || '',
-      dui: formatDui(cliente.dui) || '',
-      direccion: cliente.direccion || '',
-      departamento: cliente.departamento || '',
-      distrito: cliente.distrito || '',
-      municipio: cliente.municipio || '',
-    }
-    : formVacio()
-  modalAbierto.value = true
+        nombre: cliente.nombre,
+        apellido: cliente.apellido,
+        email: cliente.email,
+        telefono: cliente.telefono || '',
+        tipoCliente: cliente.tipoCliente || 'nacional',
+        pais: cliente.pais || (cliente.tipoCliente === 'extranjero' ? '' : 'El Salvador'),
+        dui: formatDui(cliente.dui) || '',
+        documento: cliente.documento || '',
+        direccion: cliente.direccion || '',
+        departamento: cliente.departamento || '',
+        municipio: cliente.municipio || '',
+        distrito: cliente.distrito || '',
+      }
+    : formVacio();
+  modalAbierto.value = true;
 }
 
 function cerrarModal() {
-  modalAbierto.value = false
+  modalAbierto.value = false;
+}
+
+function setTipoCliente(tipoCliente: TipoCliente) {
+  form.value.tipoCliente = tipoCliente;
+  if (tipoCliente === 'nacional') {
+    form.value.pais = 'El Salvador';
+    form.value.documento = '';
+  } else {
+    form.value.dui = '';
+    form.value.departamento = '';
+    form.value.municipio = '';
+    form.value.distrito = '';
+    form.value.pais = '';
+  }
+}
+
+function onDepartamentoChange() {
+  form.value.municipio = '';
+  form.value.distrito = '';
+}
+
+function onMunicipioChange() {
+  form.value.distrito = '';
 }
 
 async function guardar() {
-  guardando.value = true
-  formError.value = ''
-  const duiClean = form.value.dui.replace('-', '')
-  if (duiClean.length !== 9 || !/^\d{9}$/.test(duiClean)) {
-    formError.value = 'El DUI debe tener exactamente 9 dígitos'
-    guardando.value = false
-    return
+  guardando.value = true;
+  formError.value = '';
+
+  const dataToSend = buildPayload();
+  const validationError = validar(dataToSend);
+  if (validationError) {
+    formError.value = validationError;
+    guardando.value = false;
+    return;
   }
+
   try {
-    const dataToSend = { ...form.value, dui: duiClean }
     if (clienteEditando.value) {
-      await clientesApi.update(clienteEditando.value.idCliente, dataToSend)
+      await clientesApi.update(clienteEditando.value.idCliente, dataToSend);
     } else {
-      await clientesApi.create(dataToSend)
+      await clientesApi.create(dataToSend);
     }
-    cerrarModal()
-    cargar(busqueda.value || undefined)
+    cerrarModal();
+    cargar(busqueda.value || undefined);
   } catch (e: any) {
-    const msg = e?.response?.data?.message
-    formError.value = Array.isArray(msg) ? msg[0] : (msg ?? 'Ocurrió un error')
+    const msg = e?.response?.data?.message;
+    formError.value = Array.isArray(msg) ? msg[0] : (msg ?? 'Ocurrio un error');
   } finally {
-    guardando.value = false
+    guardando.value = false;
   }
+}
+
+function buildPayload() {
+  const duiClean = form.value.dui.replace(/\D/g, '');
+  return {
+    ...form.value,
+    dui: form.value.tipoCliente === 'nacional' ? duiClean : undefined,
+    documento: form.value.tipoCliente === 'extranjero' ? form.value.documento.trim() : undefined,
+    pais: form.value.tipoCliente === 'extranjero' ? form.value.pais.trim() : 'El Salvador',
+    departamento: form.value.tipoCliente === 'nacional' ? form.value.departamento : undefined,
+    municipio: form.value.tipoCliente === 'nacional' ? form.value.municipio : undefined,
+    distrito: form.value.tipoCliente === 'nacional' ? form.value.distrito : undefined,
+  };
+}
+
+function validar(data: ReturnType<typeof buildPayload>) {
+  if (!data.nombre || !data.apellido || !data.email || !data.telefono || !data.direccion) {
+    return 'Complete los datos generales del cliente';
+  }
+
+  if (data.tipoCliente === 'nacional') {
+    if (!data.dui || data.dui.length !== 9) return 'El DUI debe tener exactamente 9 digitos';
+    if (!data.departamento || !data.municipio || !data.distrito) {
+      return 'Seleccione departamento, municipio y distrito';
+    }
+  }
+
+  if (data.tipoCliente === 'extranjero') {
+    if (!data.pais) return 'Ingrese el pais del cliente extranjero';
+    if (!data.documento) return 'Ingrese el documento del cliente extranjero';
+  }
+
+  return '';
 }
 
 async function toggleActivo(cliente: any) {
   try {
-    await clientesApi.toggleActivo(cliente.idCliente)
-    cargar(busqueda.value || undefined)
+    await clientesApi.toggleActivo(cliente.idCliente);
+    cargar(busqueda.value || undefined);
   } catch {
-    errorGlobal.value = 'No se pudo cambiar el estado del cliente'
+    errorGlobal.value = 'No se pudo cambiar el estado del cliente';
   }
 }
 
-function formatFecha(fecha: string) {
-  return new Date(fecha).toLocaleDateString('es-ES', {
-    year: 'numeric', month: 'short', day: 'numeric',
-  })
+function ubicacionCliente(cliente: any) {
+  if (cliente.tipoCliente === 'extranjero') return cliente.pais || 'Extranjero';
+  return [cliente.departamento, cliente.municipio, cliente.distrito].filter(Boolean).join(' / ') || '-';
 }
 
-function formatDui(value: string): string {
+function formatDui(value?: string): string {
   if (!value) return '';
   const cleaned = value.replace(/\D/g, '');
-  if (cleaned.length <= 8) {
-    return cleaned;
-  } else {
-    return cleaned.slice(0, 8) + '-' + cleaned.slice(8, 9);
-  }
+  if (cleaned.length <= 8) return cleaned;
+  return `${cleaned.slice(0, 8)}-${cleaned.slice(8, 9)}`;
 }
 
 function formatDuiInput(event: Event) {
@@ -349,75 +423,73 @@ function formatDuiInput(event: Event) {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap');
-
 .clientes-page {
-  font-family: 'Sora', sans-serif;
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 1100px;
+  max-width: 1180px;
 }
 
-/* ── Header ─────────────────────────────────────── */
-.page-header {
+.page-header,
+.header-right,
+.user-cell,
+.actions,
+.modal-footer {
   display: flex;
   align-items: center;
+}
+
+.page-header {
   justify-content: space-between;
 }
 
+.header-right,
+.actions,
+.modal-footer {
+  gap: 10px;
+}
+
 .page-title {
+  margin: 0 0 4px;
+  color: var(--text-primary);
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 4px;
-  letter-spacing: -0.02em;
 }
 
 .page-subtitle {
-  font-size: 0.85rem;
-  color: var(--text-muted);
   margin: 0;
-  font-weight: 300;
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.header-badge,
+.type-badge,
+.status-badge {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .header-badge {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--accent);
   background: var(--accent-light);
+  color: var(--accent);
   border: 1px solid var(--accent-border);
-  border-radius: 99px;
-  padding: 4px 14px;
 }
 
-/* ── Botones ─────────────────────────────────────── */
-.btn-primary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
-  background: linear-gradient(135deg, #6366f1, #818cf8);
-  color: white;
-  border: none;
-  border-radius: 9px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  font-family: 'Sora', sans-serif;
+.btn-primary,
+.btn-secondary,
+.action-btn {
+  border: 0;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  font: inherit;
 }
 
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+.btn-primary {
+  background: #6366f1;
+  color: white;
+  padding: 9px 14px;
 }
 
 .btn-primary:disabled {
@@ -426,409 +498,271 @@ function formatDuiInput(event: Event) {
 }
 
 .btn-secondary {
-  padding: 9px 16px;
   background: var(--bg-card);
   color: var(--text-secondary);
-  border: 1.5px solid var(--border);
-  border-radius: 9px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  font-family: 'Sora', sans-serif;
-  cursor: pointer;
-  transition: all 0.2s;
+  border: 1px solid var(--border);
+  padding: 9px 14px;
 }
 
-.btn-secondary:hover {
-  background: var(--bg-hover);
+.btn-icon {
+  font-weight: 700;
 }
 
-.btn-loading {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* ── Búsqueda ────────────────────────────────────── */
-.search-wrapper {
-  position: relative;
-}
-
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
+.search-input,
+.field-input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font: inherit;
+  outline: none;
 }
 
 .search-input {
-  width: 100%;
-  padding: 9px 12px 9px 36px;
-  border: 1.5px solid var(--border);
-  border-radius: 9px;
-  font-size: 0.875rem;
-  font-family: 'Sora', sans-serif;
-  color: var(--text-primary);
-  background: var(--bg-card);
-  transition: all 0.2s;
-  outline: none;
-  box-sizing: border-box;
+  padding: 10px 12px;
 }
 
-.search-input:focus {
+.field-input {
+  padding: 9px 10px;
+}
+
+.search-input:focus,
+.field-input:focus {
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
-.search-input::placeholder {
-  color: var(--text-muted);
-}
-
-/* ── Estados ─────────────────────────────────────── */
-.state-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 48px;
+.state-box,
+.table-card,
+.modal {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  color: var(--text-muted);
-  font-size: 0.9rem;
+  border-radius: 10px;
 }
 
-.error-box {
-  color: #ef4444;
+.state-box {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.error-box,
+.form-error {
+  color: #dc2626;
   background: #fef2f2;
   border-color: #fecaca;
 }
 
-.spin {
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* ── Tabla ───────────────────────────────────────── */
 .table-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: auto;
 }
 
 .clientes-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
 }
 
-thead tr {
-  background: var(--bg-app);
-  border-bottom: 1px solid var(--border);
-}
-
-th {
-  padding: 12px 16px;
-  text-align: left;
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-tbody tr {
-  border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
-}
-
-tbody tr:last-child {
-  border-bottom: none;
-}
-
-tbody tr:hover {
-  background: var(--bg-hover);
-}
-
+th,
 td {
-  padding: 14px 16px;
-  color: var(--text-primary);
-}
-
-.td-id {
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  width: 40px;
-}
-
-.td-email {
-  color: var(--text-secondary);
-}
-
-.td-secondary {
-  color: var(--text-muted);
-  font-size: 0.82rem;
-}
-
-.td-date {
-  color: var(--text-muted);
-  font-size: 0.8rem;
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 
+th {
+  color: var(--text-muted);
+  background: var(--bg-app);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.td-id,
+.td-secondary {
+  color: var(--text-muted);
+}
+
 .user-cell {
-  display: flex;
-  align-items: center;
   gap: 10px;
 }
 
 .user-avatar {
   width: 30px;
   height: 30px;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #a5b4fc);
+  background: #6366f1;
   color: white;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: opacity 0.2s;
+  font-weight: 700;
 }
 
-.user-avatar.inactive {
-  opacity: 0.4;
+.inactive {
+  opacity: 0.5;
 }
 
-.user-name.inactive {
-  color: var(--text-muted);
-  text-decoration: line-through;
+.type-badge.nacional {
+  background: #eef2ff;
+  color: #4f46e5;
 }
 
-/* ── Status badge ────────────────────────────────── */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.72rem;
-  font-weight: 500;
-  padding: 3px 10px;
-  border-radius: 99px;
+.type-badge.extranjero {
+  background: #ecfeff;
+  color: #0891b2;
 }
 
 .status-badge.activo {
   background: #f0fdf4;
   color: #16a34a;
-  border: 1px solid #bbf7d0;
 }
 
 .status-badge.inactivo {
   background: #fef2f2;
-  color: #ef4444;
-  border: 1px solid #fecaca;
-}
-
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-/* ── Acciones ────────────────────────────────────── */
-.actions {
-  display: flex;
-  gap: 6px;
+  color: #dc2626;
 }
 
 .action-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  border: 1.5px solid var(--border);
-  background: var(--bg-card);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.18s;
-  color: var(--text-muted);
+  padding: 7px 10px;
+  background: var(--bg-app);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .edit-btn:hover {
-  background: #eef2ff;
+  color: #4f46e5;
   border-color: #c7d2fe;
-  color: #6366f1;
 }
 
 .deactivate-btn:hover {
-  background: #fef2f2;
+  color: #dc2626;
   border-color: #fecaca;
-  color: #ef4444;
 }
 
 .activate-btn:hover {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
   color: #16a34a;
+  border-color: #bbf7d0;
 }
 
-/* ── Estado vacío ────────────────────────────────── */
 .empty-state {
+  padding: 36px;
   text-align: center;
-  padding: 48px;
   color: var(--text-muted);
-  font-size: 0.9rem;
 }
 
-/* ── Modal overlay ───────────────────────────────── */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
   padding: 20px;
+  background: rgba(0, 0, 0, 0.55);
 }
 
 .modal {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  width: 100%;
-  max-width: 520px;
+  width: min(680px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-  overflow: hidden;
+}
+
+.modal-header,
+.modal-body,
+.modal-footer {
+  padding: 18px 22px;
 }
 
 .modal-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 20px 24px 16px;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-card);
 }
 
 .modal-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
   margin: 0;
+  color: var(--text-primary);
+  font-size: 1rem;
 }
 
 .modal-close {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  border: 1.5px solid var(--border);
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   background: var(--bg-card);
   color: var(--text-muted);
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.18s;
-}
-
-.modal-close:hover {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #ef4444;
 }
 
 .modal-body {
-  padding: 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  background: var(--bg-card);
 }
 
 .modal-footer {
-  display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 24px 20px;
   border-top: 1px solid var(--border);
-  background: var(--bg-card);
 }
 
-/* ── Form ────────────────────────────────────────── */
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
 .field-group {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
+}
+
+.field-group.full {
+  grid-column: 1 / -1;
 }
 
 .field-label {
-  font-size: 0.78rem;
-  font-weight: 500;
   color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
-.field-input {
-  padding: 9px 12px;
-  border: 1.5px solid var(--border);
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border: 1px solid var(--border);
   border-radius: 9px;
-  font-size: 0.875rem;
-  font-family: 'Sora', sans-serif;
-  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.segmented button {
+  border: 0;
+  padding: 9px 12px;
   background: var(--bg-app);
-  transition: all 0.2s;
-  outline: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
 }
 
-.field-input:focus {
-  border-color: #6366f1;
-  background: var(--bg-card);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-}
-
-.field-input::placeholder {
-  color: var(--text-muted);
+.segmented button.active {
+  background: #6366f1;
+  color: white;
 }
 
 .form-error {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  color: #ef4444;
-  background: #fef2f2;
   border: 1px solid #fecaca;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 9px 12px;
+  font-size: 0.84rem;
 }
 
-/* ── Transition ──────────────────────────────────── */
 .modal-enter-active,
 .modal-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.modal-enter-active .modal,
-.modal-leave-active .modal {
-  transition: transform 0.2s ease;
+  transition: opacity 0.18s ease;
 }
 
 .modal-enter-from,
@@ -836,8 +770,15 @@ td {
   opacity: 0;
 }
 
-.modal-enter-from .modal,
-.modal-leave-to .modal {
-  transform: scale(0.95) translateY(10px);
+@media (max-width: 720px) {
+  .page-header,
+  .header-right {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

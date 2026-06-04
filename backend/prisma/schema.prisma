@@ -39,6 +39,11 @@ model Usuario {
   creadoEn   DateTime @default(now())
 }
 
+enum TipoCliente {
+  nacional
+  extranjero
+}
+
 model Cliente {
   idCliente    Int           @id @default(autoincrement())
   nombre       String
@@ -46,10 +51,13 @@ model Cliente {
   email        String        @unique
   telefono     String
   direccion    String
-  departamento String
-  municipio    String
-  distrito     String
-  dui          String        @unique  // Documento de identidad
+  tipoCliente  TipoCliente   @default(nacional)
+  pais         String?       @default("El Salvador")
+  departamento String?
+  municipio    String?
+  distrito     String?
+  dui          String?       @unique  // Documento de identidad salvadoreño
+  documento    String?       // Pasaporte u otro documento extranjero
   activo       Boolean       @default(true)
   creadoEn     DateTime      @default(now())
   reservaciones Reservacion[]
@@ -72,19 +80,21 @@ model TipoHabitacion {
 }
 
 model Habitacion {
-  idHabitacion Int               @id @default(autoincrement())
-  numero       String            @unique   // "101", "202-A"
-  piso         Int
-  capacidad    Int               @default(2)
-  estado       EstadoHabitacion  @default(disponible)
-  amenidades   String[]          // ["wifi", "AC", "TV", "jacuzzi"]
-  imagenUrl    String?
-  descripcion  String?
-  activo       Boolean           @default(true)
-  tipoId       Int
-  tipo         TipoHabitacion    @relation(fields: [tipoId], references: [idTipo])
+  idHabitacion  Int               @id @default(autoincrement())
+  numero        String            @unique
+  piso          Int
+  capacidad     Int               @default(2)
+  estado        EstadoHabitacion  @default(disponible)
+  amenidades    String[]
+  imagenUrl     String?
+  descripcion   String?
+  activo        Boolean           @default(true)
+  tipoId        Int
+  tipo          TipoHabitacion    @relation(fields: [tipoId], references: [idTipo])
   reservaciones Reservacion[]
-  creadoEn     DateTime          @default(now())
+  vista         String?           
+  precioFinal   Decimal?          @db.Decimal(10, 2) // precio con modificadores aplicados
+  creadoEn      DateTime          @default(now())
 }
 
 enum EstadoReservacion {
