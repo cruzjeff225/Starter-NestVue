@@ -10,6 +10,7 @@ import { HabitacionesModule } from './modules/rooms/habitacionesModule';
 import { ReservacionesModule } from './modules/reservations/reservacionesModule';
 import { FacturacionModule } from './modules/facturation/facturacionModule';
 import { DashboardModule } from './modules/dashboard/dashboardModule';
+import { PagosModule } from './modules/payments/pagosModule';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { DashboardModule } from './modules/dashboard/dashboardModule';
     HabitacionesModule,
     ReservacionesModule,
     FacturacionModule,
+    PagosModule,
     DashboardModule,
   ],
 })

@@ -729,7 +729,7 @@ function calcularNoches(entrada: string, salida: string): number {
 
 function parseDateInput(value: string) {
   const [year, month, day] = value.slice(0, 10).split('-').map(Number)
-  return new Date(year, month - 1, day)
+  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1)
 }
 
 function startOfDay(date: Date) {

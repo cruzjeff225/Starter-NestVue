@@ -93,6 +93,7 @@ model Habitacion {
   tipo          TipoHabitacion    @relation(fields: [tipoId], references: [idTipo])
   reservaciones Reservacion[]
   vista         String?           
+  cercaniasStr  String[]
   precioFinal   Decimal?          @db.Decimal(10, 2) // precio con modificadores aplicados
   creadoEn      DateTime          @default(now())
 }
@@ -131,6 +132,7 @@ model Reservacion {
   habitacion       Habitacion         @relation(fields: [habitacionId], references: [idHabitacion])
   creadoEn         DateTime           @default(now())
   factura      Factura?
+  pagos        Pago[]
 }
 
 enum TipoFactura {
@@ -176,6 +178,7 @@ model Factura {
   cliente          Cliente        @relation(fields: [clienteId], references: [idCliente])
   reservacion      Reservacion?   @relation(fields: [reservacionId], references: [idReservacion])
   items            ItemFactura[]
+  pagos            Pago[]
   creadoEn         DateTime       @default(now())
 }
 
@@ -187,4 +190,48 @@ model ItemFactura {
   subtotal    Decimal  @db.Decimal(10, 2)  // cantidad × precioUnit
   facturaId   Int
   factura     Factura  @relation(fields: [facturaId], references: [idFactura])
+}
+
+enum EstadoPago {
+  pendiente
+  aprobado
+  rechazado
+  reembolsado
+}
+
+enum MetodoPagoGateway {
+  efectivo
+  tarjeta
+  transferencia
+  wallet
+  link_pago
+}
+
+enum ProveedorPago {
+  simulado
+}
+
+model Pago {
+  idPago          Int               @id @default(autoincrement())
+  referencia      String            @unique
+  proveedor       ProveedorPago      @default(simulado)
+  metodo          MetodoPagoGateway
+  estado          EstadoPago         @default(pendiente)
+  monto           Decimal           @db.Decimal(10, 2)
+  moneda          String            @default("USD")
+  autorizacion    String?
+  ultimos4        String?
+  marcaTarjeta    String?
+  tokenPasarela   String?
+  titular         String?
+  emailPagador    String?
+  motivoRechazo   String?
+  notas           String?
+  metadata        Json?
+  reservacionId   Int?
+  facturaId       Int?
+  reservacion     Reservacion?      @relation(fields: [reservacionId], references: [idReservacion])
+  factura         Factura?          @relation(fields: [facturaId], references: [idFactura])
+  creadoEn        DateTime          @default(now())
+  actualizadoEn   DateTime          @updatedAt
 }

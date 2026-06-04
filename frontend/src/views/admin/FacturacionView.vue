@@ -437,7 +437,7 @@
                 </thead>
                 <tbody>
                   <tr v-for="(item, i) in detalleFactura?.items" :key="item.idItem">
-                    <td class="tc">{{ i + 1 }}</td>
+                    <td class="tc">{{ Number(i) + 1 }}</td>
                     <td class="tc">{{ item.cantidad }}</td>
                     <td class="tc">Unidad</td>
                     <td>{{ item.descripcion }}</td>
@@ -797,9 +797,9 @@ function numeroALetras(num: number): string {
     if (n === 0) return ''
     if (n === 100) return 'cien'
     let r = ''; const c = Math.floor(n/100); const resto = n%100
-    if (c > 0) r += centenas[c] + (resto > 0 ? ' ' : '')
-    if (resto < 20) r += unidades[resto]
-    else { const d = Math.floor(resto/10); const u = resto%10; r += decenas[d] + (u > 0 ? ' y ' + unidades[u] : '') }
+    if (c > 0) r += (centenas[c] ?? '') + (resto > 0 ? ' ' : '')
+    if (resto < 20) r += unidades[resto] ?? ''
+    else { const d = Math.floor(resto/10); const u = resto%10; r += (decenas[d] ?? '') + (u > 0 ? ' y ' + (unidades[u] ?? '') : '') }
     return r
   }
   const entero = Math.floor(num); const centavos = Math.round((num - entero) * 100)

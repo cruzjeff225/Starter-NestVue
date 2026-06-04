@@ -348,11 +348,11 @@
                     <span class="pc-label">
                       {{ iconoVista[form.vista] }} Vista {{ etiquetaVista[form.vista] }}
                     </span>
-                    <span class="pc-val green">+{{ (MODIFICADORES_VISTA[form.vista] * 100).toFixed(0) }}%</span>
+                    <span class="pc-val green">+{{ ((MODIFICADORES_VISTA[form.vista] ?? 0) * 100).toFixed(0) }}%</span>
                   </div>
                   <div v-for="c in form.cercanias" :key="c" class="pc-row pc-mod">
                     <span class="pc-label">{{ iconoCercania[c] }} {{ etiquetaCercania[c] }}</span>
-                    <span class="pc-val green">+{{ (MODIFICADORES_CERCANIA[c] * 100).toFixed(0) }}%</span>
+                    <span class="pc-val green">+{{ ((MODIFICADORES_CERCANIA[c] ?? 0) * 100).toFixed(0) }}%</span>
                   </div>
                   <div v-if="modificadorTotal >= MAX_MODIFICADOR" class="pc-cap-warn">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -807,7 +807,7 @@ async function guardarTipo() {
 }
 async function eliminarTipo(t: any) {
   if ((t._count?.habitaciones ?? 0) > 0) return
-  if (!confirm(`¿Eliminar "${t.nombre}"?`)) return
+  if (!window.confirm(`¿Eliminar "${t.nombre}"?`)) return
   try { await habitacionesApi.deleteTipo(t.idTipo); showToast(`Tipo "${t.nombre}" eliminado`); huboTiposCambios.value = true; await cargarTipos() }
   catch (e: any) { tipoError.value = e?.response?.data?.message ?? 'Error al eliminar' }
 }

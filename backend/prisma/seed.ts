@@ -17,6 +17,22 @@ async function main() {
   });
   console.log('✔ Permiso superadmin:todo creado');
 
+  const permisosBase = [
+    'pagos:leer',
+    'pagos:crear',
+    'pagos:cambiar_estado',
+    'pagos:reembolsar',
+  ];
+
+  for (const nombre of permisosBase) {
+    await prisma.permiso.upsert({
+      where: { nombre },
+      update: {},
+      create: { nombre },
+    });
+  }
+  console.log('Permisos de pagos creados');
+
   // Rol superadmin
   const rolSuperadmin = await prisma.rol.upsert({
     where: { nombre: 'superadmin' },

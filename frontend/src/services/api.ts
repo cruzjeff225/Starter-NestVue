@@ -78,6 +78,22 @@ export const facturacionApi = {
     api.patch(`/facturacion/${id}/anular`, data),
 };
 
+export const pagosApi = {
+  getAll: (params?: {
+    search?: string;
+    estado?: string;
+    reservacionId?: number;
+    facturaId?: number;
+  }) => api.get("/pagos", { params }),
+  getById: (id: number) => api.get(`/pagos/${id}`),
+  create: (data: any) => api.post("/pagos", data),
+  cambiarEstado: (
+    id: number,
+    data: { estado: string; motivoRechazo?: string },
+  ) => api.patch(`/pagos/${id}/estado`, data),
+  reembolsar: (id: number) => api.patch(`/pagos/${id}/reembolsar`),
+};
+
 export const dashboardApi = {
   getStats: () => api.get("/dashboard/stats"),
 };

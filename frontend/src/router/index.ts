@@ -46,6 +46,12 @@ const router = createRouter({
           component: () => import("../views/admin/FacturacionView.vue"),
           meta: { permiso: "facturacion:leer" },
         },
+        {
+          path: "/admin/pagos",
+          name: "Pagos",
+          component: () => import("../views/admin/PagosView.vue"),
+          meta: { permiso: "pagos:leer" },
+        },
       ],
     },
   ],
