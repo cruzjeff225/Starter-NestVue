@@ -6,6 +6,7 @@ import {
   IsString,
   Matches,
   MaxLength,
+  MinLength,
   Min,
   ValidateIf,
 } from 'class-validator';
@@ -22,7 +23,7 @@ export class CreatePagoDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(3)
+  @Matches(/^[A-Z]{3}$/, { message: 'Moneda invalida. Usa codigo ISO de 3 letras' })
   moneda?: string;
 
   @IsOptional()
@@ -37,6 +38,8 @@ export class CreatePagoDto {
 
   @IsOptional()
   @IsString()
+  @MinLength(3, { message: 'Titular demasiado corto' })
+  @MaxLength(120, { message: 'Titular demasiado largo' })
   titular?: string;
 
   @IsOptional()
@@ -45,6 +48,7 @@ export class CreatePagoDto {
 
   @ValidateIf((o: CreatePagoDto) => o.metodo === MetodoPagoGateway.tarjeta)
   @IsString({ message: 'Numero de tarjeta requerido' })
+  @Matches(/^\d{13,19}$/, { message: 'Numero de tarjeta invalido' })
   tarjetaNumero?: string;
 
   @ValidateIf((o: CreatePagoDto) => o.metodo === MetodoPagoGateway.tarjeta)
@@ -59,17 +63,24 @@ export class CreatePagoDto {
 
   @ValidateIf((o: CreatePagoDto) => o.metodo === MetodoPagoGateway.transferencia)
   @IsString({ message: 'Banco origen requerido' })
+  @MinLength(3, { message: 'Banco origen invalido' })
+  @MaxLength(80, { message: 'Banco origen demasiado largo' })
   bancoOrigen?: string;
 
   @ValidateIf((o: CreatePagoDto) => o.metodo === MetodoPagoGateway.transferencia)
   @IsString({ message: 'Referencia bancaria requerida' })
+  @Matches(/^[A-Z0-9-]{6,40}$/i, {
+    message: 'Referencia bancaria invalida',
+  })
   referenciaBancaria?: string;
 
   @IsOptional()
   @IsString()
+  @Matches(/^(n1co|wompi|stripe|bizz)$/i, { message: 'Pasarela no soportada' })
   pasarela?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(500, { message: 'Notas demasiado largas' })
   notas?: string;
 }

@@ -228,11 +228,13 @@
                 <div class="field-grid">
                   <label class="field">
                     <span>Banco origen</span>
-                    <input v-model="form.bancoOrigen" type="text" placeholder="Banco Agricola, BAC, Davivienda..." />
+                    <input v-model="form.bancoOrigen" :class="validationClass(bancoStatus)" type="text" placeholder="Banco Agricola, BAC, Davivienda..." />
+                    <small :class="validationClass(bancoStatus)">{{ bancoHint }}</small>
                   </label>
                   <label class="field">
                     <span>Referencia bancaria</span>
-                    <input v-model="form.referenciaBancaria" type="text" placeholder="TRX20260604A1" />
+                    <input v-model="form.referenciaBancaria" :class="validationClass(referenciaStatus)" type="text" placeholder="TRX20260604A1" />
+                    <small :class="validationClass(referenciaStatus)">{{ referenciaHint }}</small>
                   </label>
                 </div>
               </section>
@@ -240,17 +242,20 @@
               <div class="field-grid">
                 <label class="field">
                   <span>Monto</span>
-                  <input v-model.number="form.monto" type="number" min="0.01" step="0.01" />
+                  <input v-model.number="form.monto" :class="validationClass(montoStatus)" type="number" min="0.01" step="0.01" />
+                  <small :class="validationClass(montoStatus)">{{ montoHint }}</small>
                 </label>
                 <label class="field">
                   <span>Moneda</span>
-                  <input v-model="form.moneda" type="text" maxlength="3" />
+                  <input v-model="form.moneda" :class="validationClass(monedaStatus)" type="text" maxlength="3" @input="formatCurrencyInput" />
+                  <small :class="validationClass(monedaStatus)">{{ monedaHint }}</small>
                 </label>
               </div>
 
               <label class="field">
                 <span>Titular</span>
-                <input v-model="form.titular" type="text" placeholder="Nombre del cliente" />
+                <input v-model="form.titular" :class="validationClass(titularStatus)" type="text" placeholder="Nombre del cliente" />
+                <small :class="validationClass(titularStatus)">{{ titularHint }}</small>
               </label>
 
               <div class="field-grid">
@@ -302,7 +307,7 @@
 
           <footer class="modal-footer">
             <button class="btn btn-light" @click="cerrarModal">Cancelar</button>
-            <button class="btn btn-primary" :disabled="guardando" @click="guardar">
+            <button class="btn btn-primary" :disabled="guardando || !canSubmit" @click="guardar">
               {{ guardando ? 'Procesando...' : 'Procesar pago' }}
             </button>
           </footer>
@@ -406,7 +411,7 @@ const resumen = computed(() => {
     { label: 'Pagos', value: pagos.value.length },
     { label: 'Aprobados', value: aprobados.length },
     { label: 'Pendientes', value: pendientes },
-    { label: 'Capturado', value: `$${formatPrecio(total)}` },
+    { label: 'Depositado', value: `$${formatPrecio(total)}` },
     { label: 'Rechazados', value: rechazados },
   ]
 })
@@ -494,6 +499,59 @@ const emailHint = computed(() => {
   return emailStatus.value === 'valid' ? 'Correo valido.' : 'Correo invalido.'
 })
 
+const montoStatus = computed(() => {
+  if (!form.value.monto) return 'idle'
+  return Number(form.value.monto) > 0 ? 'valid' : 'invalid'
+})
+
+const montoHint = computed(() => {
+  if (!form.value.monto) return 'Debe ser mayor a 0.'
+  return montoStatus.value === 'valid' ? 'Monto valido.' : 'El monto debe ser mayor a 0.'
+})
+
+const monedaStatus = computed(() => {
+  if (!form.value.moneda) return 'idle'
+  return /^[A-Z]{3}$/.test(form.value.moneda) ? 'valid' : 'invalid'
+})
+
+const monedaHint = computed(() => {
+  if (!form.value.moneda) return 'Codigo de 3 letras, por ejemplo USD.'
+  return monedaStatus.value === 'valid' ? 'Moneda valida.' : 'Use un codigo ISO de 3 letras.'
+})
+
+const titularStatus = computed(() => {
+  if (!form.value.titular) return 'idle'
+  return form.value.titular.trim().length >= 3 ? 'valid' : 'invalid'
+})
+
+const titularHint = computed(() => {
+  if (!form.value.titular) return 'Nombre del pagador o titular.'
+  return titularStatus.value === 'valid' ? 'Titular valido.' : 'Ingrese al menos 3 caracteres.'
+})
+
+const bancoStatus = computed(() => {
+  if (form.value.metodo !== 'transferencia' || !form.value.bancoOrigen) return 'idle'
+  return form.value.bancoOrigen.trim().length >= 3 ? 'valid' : 'invalid'
+})
+
+const bancoHint = computed(() => {
+  if (!form.value.bancoOrigen) return 'Banco desde donde se envio la transferencia.'
+  return bancoStatus.value === 'valid' ? 'Banco valido.' : 'Ingrese al menos 3 caracteres.'
+})
+
+const referenciaStatus = computed(() => {
+  if (form.value.metodo !== 'transferencia' || !form.value.referenciaBancaria) return 'idle'
+  const value = form.value.referenciaBancaria.trim()
+  return /^[A-Z0-9-]{6,40}$/i.test(value) ? 'valid' : 'invalid'
+})
+
+const referenciaHint = computed(() => {
+  if (!form.value.referenciaBancaria) return 'Referencia bancaria de 6 a 40 caracteres.'
+  return referenciaStatus.value === 'valid' ? 'Referencia valida.' : 'Use solo letras, numeros o guiones.'
+})
+
+const canSubmit = computed(() => validarFormulario().length === 0)
+
 const resumenAsociacion = computed(() => {
   if (form.value.tipoAsociacion === 'factura') {
     const factura = facturas.value.find((f) => f.idFactura === form.value.facturaId)
@@ -567,6 +625,12 @@ function limpiarDatosMetodo() {
   form.value.referenciaBancaria = ''
 }
 
+function formatCurrencyInput(event: Event) {
+  const target = event.target as HTMLInputElement
+  target.value = target.value.replace(/[^a-z]/gi, '').toUpperCase().slice(0, 3)
+  form.value.moneda = target.value
+}
+
 function tomarMontoReservacion() {
   const reserva = reservaciones.value.find((r) => r.idReservacion === form.value.reservacionId)
   form.value.monto = Number(reserva?.totalCalculado ?? 0)
@@ -584,24 +648,9 @@ function tomarMontoFactura() {
 }
 
 async function guardar() {
-  if (!form.value.monto || form.value.monto <= 0) {
-    formError.value = 'El monto debe ser mayor a 0'
-    return
-  }
-
-  if (form.value.tipoAsociacion === 'reservacion' && !form.value.reservacionId) {
-    formError.value = 'Selecciona una reservacion'
-    return
-  }
-
-  if (form.value.tipoAsociacion === 'factura' && !form.value.facturaId) {
-    formError.value = 'Selecciona una factura'
-    return
-  }
-
-  const metodoError = validarMetodo()
-  if (metodoError) {
-    formError.value = metodoError
+  const errores = validarFormulario()
+  if (errores.length) {
+    formError.value = errores[0] ?? 'Revise los datos del pago'
     return
   }
 
@@ -612,16 +661,16 @@ async function guardar() {
     await pagosApi.create({
       metodo: form.value.metodo,
       monto: Number(form.value.monto),
-      moneda: form.value.moneda,
+      moneda: form.value.moneda.trim().toUpperCase(),
       reservacionId: form.value.tipoAsociacion === 'reservacion' ? Number(form.value.reservacionId) : undefined,
       facturaId: form.value.tipoAsociacion === 'factura' ? Number(form.value.facturaId) : undefined,
-      titular: form.value.titular || undefined,
-      emailPagador: form.value.emailPagador || undefined,
+      titular: form.value.titular.trim() || undefined,
+      emailPagador: form.value.emailPagador.trim() || undefined,
       tarjetaNumero: form.value.metodo === 'tarjeta' ? cleanCard(form.value.tarjetaNumero) : undefined,
       vencimiento: form.value.metodo === 'tarjeta' ? form.value.vencimiento : undefined,
       cvv: form.value.metodo === 'tarjeta' ? form.value.cvv : undefined,
-      bancoOrigen: form.value.metodo === 'transferencia' ? form.value.bancoOrigen : undefined,
-      referenciaBancaria: form.value.metodo === 'transferencia' ? form.value.referenciaBancaria : undefined,
+      bancoOrigen: form.value.metodo === 'transferencia' ? form.value.bancoOrigen.trim() : undefined,
+      referenciaBancaria: form.value.metodo === 'transferencia' ? form.value.referenciaBancaria.trim().toUpperCase() : undefined,
       pasarela: form.value.pasarela,
       notas: form.value.notas || undefined,
     })
@@ -653,11 +702,39 @@ function validarMetodo() {
   }
 
   if (form.value.metodo === 'transferencia') {
-    if (!form.value.bancoOrigen.trim()) return 'Ingrese el banco origen'
-    if (form.value.referenciaBancaria.trim().length < 6) return 'Ingrese una referencia bancaria valida'
+    if (bancoStatus.value !== 'valid') return 'Ingrese el banco origen'
+    if (referenciaStatus.value !== 'valid') return 'Ingrese una referencia bancaria valida'
   }
 
   return ''
+}
+
+function validarFormulario() {
+  const errores: string[] = []
+
+  if (form.value.tipoAsociacion === 'reservacion' && !form.value.reservacionId) {
+    errores.push('Selecciona una reservacion')
+  }
+
+  if (form.value.tipoAsociacion === 'factura' && !form.value.facturaId) {
+    errores.push('Selecciona una factura')
+  }
+
+  if (montoStatus.value !== 'valid') errores.push('El monto debe ser mayor a 0')
+  if (monedaStatus.value !== 'valid') errores.push('Ingrese una moneda valida de 3 letras')
+
+  if (form.value.titular && titularStatus.value !== 'valid') {
+    errores.push('Ingrese un titular valido')
+  }
+
+  if (form.value.emailPagador && emailStatus.value !== 'valid') {
+    errores.push('Ingrese un correo electronico valido')
+  }
+
+  const metodoError = validarMetodo()
+  if (metodoError) errores.push(metodoError)
+
+  return errores
 }
 
 function cleanCard(value: string) {
