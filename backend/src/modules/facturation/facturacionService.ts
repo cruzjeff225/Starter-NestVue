@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   ConflictException,
@@ -11,6 +11,8 @@ import { TipoFactura } from '@prisma/client';
 
 const IVA_RATE = 0.13;
 const TURISMO_RATE = 0.05;
+const money = (value: number) =>
+  Math.round((value + Number.EPSILON) * 100) / 100;
 
 @Injectable()
 export class FacturacionService {
@@ -91,7 +93,7 @@ export class FacturacionService {
     if (!cliente) throw new NotFoundException('Cliente no encontrado');
 
     if (dto.tipo === 'credito_fiscal' && !dto.clienteNit) {
-      throw new BadRequestException('El NIT es requerido para Crédito Fiscal');
+      throw new BadRequestException('El NIT es requerido para CrÃ©dito Fiscal');
     }
 
     if (dto.reservacionId) {
@@ -99,7 +101,7 @@ export class FacturacionService {
         where: { idReservacion: dto.reservacionId },
       });
       if (!reservacion)
-        throw new NotFoundException('Reservación no encontrada');
+        throw new NotFoundException('ReservaciÃ³n no encontrada');
 
       // Solo reservaciones completadas pueden facturarse
       if (reservacion.estado !== 'completada') {
@@ -113,41 +115,46 @@ export class FacturacionService {
       });
       if (yaFacturada)
         throw new ConflictException(
-          'Esta reservación ya tiene una factura emitida',
+          'Esta reservaciÃ³n ya tiene una factura emitida',
         );
     }
 
-    if (dto.items.length === 0) {
-      throw new BadRequestException('La factura debe tener al menos un ítem');
+    if (!Array.isArray(dto.items) || dto.items.length === 0) {
+      throw new BadRequestException('La factura debe tener al menos un item');
     }
 
     const items = dto.items.map((i) => ({
-      descripcion: i.descripcion,
-      cantidad: i.cantidad,
-      precioUnit: i.precioUnit,
-      subtotal: i.cantidad * i.precioUnit,
+      descripcion: i.descripcion?.trim(),
+      cantidad: Number(i.cantidad),
+      precioUnit: money(Number(i.precioUnit)),
+      subtotal: money(Number(i.cantidad) * Number(i.precioUnit)),
     }));
 
-    const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
-    const descuento = 0;
-    const subtotalConDesc = subtotal - descuento;
+    const itemInvalido = items.some(
+      (i) => !i.descripcion || i.cantidad < 1 || i.precioUnit < 0,
+    );
+    if (itemInvalido) {
+      throw new BadRequestException(
+        'Todos los items deben tener descripcion, cantidad y precio validos',
+      );
+    }
 
-    // Para consumidor_final: precio incluye IVA → desglosar
-    // Para crédito_fiscal: precio excluye IVA → agregar encima
+    const subtotal = money(items.reduce((s, i) => s + i.subtotal, 0));
+    const descuento = 0;
+    const subtotalConDesc = money(subtotal - descuento);
+
     let iva: number;
     let turismo: number;
     let total: number;
 
     if (dto.tipo === 'consumidor_final') {
-      // Precios con IVA incluido; desglosar los impuestos
-      iva = subtotalConDesc - subtotalConDesc / (1 + IVA_RATE);
-      turismo = subtotalConDesc * TURISMO_RATE;
-      total = subtotalConDesc + turismo;
+      iva = money(subtotalConDesc - subtotalConDesc / (1 + IVA_RATE));
+      turismo = money(subtotalConDesc * TURISMO_RATE);
+      total = money(subtotalConDesc + turismo);
     } else {
-      // crédito_fiscal: precios netos, se agregan impuestos
-      iva = subtotalConDesc * IVA_RATE;
-      turismo = subtotalConDesc * TURISMO_RATE;
-      total = subtotalConDesc + iva + turismo;
+      iva = money(subtotalConDesc * IVA_RATE);
+      turismo = money(subtotalConDesc * TURISMO_RATE);
+      total = money(subtotalConDesc + iva + turismo);
     }
 
     const numeroFactura = await this.generarNumero(dto.tipo);
@@ -181,7 +188,7 @@ export class FacturacionService {
   async anular(idFactura: number, dto: AnularFacturaDto) {
     const factura = await this.findOne(idFactura);
     if (factura.estado === 'anulada') {
-      throw new ConflictException('La factura ya está anulada');
+      throw new ConflictException('La factura ya estÃ¡ anulada');
     }
     return this.prisma.factura.update({
       where: { idFactura },
@@ -198,7 +205,7 @@ export class FacturacionService {
         cliente: true,
       },
     });
-    if (!r) throw new NotFoundException('Reservación no encontrada');
+    if (!r) throw new NotFoundException('ReservaciÃ³n no encontrada');
 
     const noches = Math.ceil(
       (new Date(r.fechaSalida).getTime() - new Date(r.fechaEntrada).getTime()) /
@@ -221,7 +228,7 @@ export class FacturacionService {
       facturaExistente,
       items: [
         {
-          descripcion: `Estadía — Habitación ${r.habitacion.numero} (${r.habitacion.tipo.nombre}) · ${noches} noche${noches > 1 ? 's' : ''}${descPct > 0 ? ` · Descuento ${descPct}%` : ''}`,
+          descripcion: `EstadÃ­a â€” HabitaciÃ³n ${r.habitacion.numero} (${r.habitacion.tipo.nombre}) Â· ${noches} noche${noches > 1 ? 's' : ''}${descPct > 0 ? ` Â· Descuento ${descPct}%` : ''}`,
           cantidad: 1,
           precioUnit: monto,
         },
@@ -235,3 +242,4 @@ export class FacturacionService {
     return `${prefix}-${String(count + 1).padStart(4, '0')}`;
   }
 }
+

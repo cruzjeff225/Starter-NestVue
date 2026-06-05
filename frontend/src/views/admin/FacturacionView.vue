@@ -197,6 +197,7 @@
                 </div>
                 <button class="res-clear" @click="limpiarReservacion">× Cambiar</button>
               </div>
+              <span v-if="errors.reservacionId" class="field-err">{{ errors.reservacionId }}</span>
             </div>
 
             <!-- Cliente -->
@@ -223,6 +224,24 @@
                 <button v-if="!(origen === 'reservacion' && form.reservacionId)" class="res-clear" @click="limpiarCliente">×</button>
               </div>
               <span v-if="errors.clienteId" class="field-err">{{ errors.clienteId }}</span>
+            </div>
+
+            <div v-if="origen === 'reservacion' && clienteSeleccionado && !form.reservacionId" class="field">
+              <label class="lbl">Reservaciones completadas del cliente</label>
+              <div v-if="resBuscando" class="res-loading">
+                <svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                Cargando reservaciones...
+              </div>
+              <div v-else-if="resSugerencias.length" class="res-dropdown">
+                <button v-for="r in resSugerencias" :key="r.idReservacion" class="res-opt" @click="seleccionarReservacion(r)">
+                  <span class="res-opt-num">#{{ r.idReservacion }}</span>
+                  <div class="res-opt-info">
+                    <span class="res-opt-name">Habitacion {{ r.habitacion.numero }}</span>
+                    <span class="res-opt-sub">{{ formatFecha(r.fechaEntrada) }} -> {{ formatFecha(r.fechaSalida) }} - ${{ fmt(r.totalCalculado) }}</span>
+                  </div>
+                </button>
+              </div>
+              <div v-else class="res-empty">Este cliente no tiene reservaciones completadas pendientes para facturar.</div>
             </div>
 
             <!-- Datos fiscales -->
@@ -555,8 +574,16 @@ const generandoPDF = ref(false)
 // ── Totales computados ─────────────────────────────────
 const IVA = 0.13
 const TURISMO = 0.05
+const toNumber = (value: any) => Number(value ?? 0)
+const normalizeList = (payload: any) => Array.isArray(payload) ? payload : (payload?.data ?? [])
+const cleanItems = () =>
+  form.value.items.map((item) => ({
+    descripcion: String(item.descripcion ?? '').trim(),
+    cantidad: Math.max(1, Number(item.cantidad || 1)),
+    precioUnit: Number(item.precioUnit || 0),
+  }))
 const totales = computed(() => {
-  const subtotal = form.value.items.reduce((s, i) => s + i.cantidad * i.precioUnit, 0)
+  const subtotal = form.value.items.reduce((s, i) => s + toNumber(i.cantidad) * toNumber(i.precioUnit), 0)
   if (form.value.tipo === 'consumidor_final') {
     const ivaIncluido = subtotal - subtotal / (1 + IVA)
     const turismo = subtotal * TURISMO
@@ -589,7 +616,7 @@ async function cargar(page = paginacion.page) {
     const { data } = await facturacionApi.getAll(params)
 
     // API returns { data, total, page, limit, totalPages }
-    facturas.value = data.data ?? data
+    facturas.value = normalizeList(data)
     if (data.total !== undefined) {
       paginacion.page = data.page
       paginacion.total = data.total
@@ -616,7 +643,7 @@ function buscarReservaciones() {
   resTimer = setTimeout(async () => {
     try {
       const { data } = await reservacionesApi.getAll({ search: resSearch.value })
-      resSugerencias.value = data.filter((r: any) => r.estado === 'completada')
+      resSugerencias.value = normalizeList(data).filter((r: any) => r.estado === 'completada')
     } catch { resSugerencias.value = [] }
     finally { resBuscando.value = false }
   }, 350)
@@ -627,10 +654,20 @@ async function seleccionarReservacion(r: any) {
   resSearch.value = `#${r.idReservacion} — ${r.cliente.nombre} ${r.cliente.apellido}`
   try {
     const { data } = await facturacionApi.getItemsDesdeReservacion(r.idReservacion)
+    if (data.facturaExistente && data.facturaExistente.estado !== 'anulada') {
+      formError.value = `La reservacion ya tiene factura ${data.facturaExistente.numeroFactura}`
+      toast.error(formError.value)
+      resSeleccionada.value = { ...r, factura: data.facturaExistente }
+      return
+    }
     resSeleccionada.value = { ...r, factura: data.facturaExistente }
     form.value.reservacionId = r.idReservacion
-    form.value.items = data.items
-    seleccionarCliente(data.cliente)
+    form.value.items = normalizeList(data.items).map((item: any) => ({
+      descripcion: item.descripcion ?? '',
+      cantidad: Number(item.cantidad ?? 1),
+      precioUnit: Number(item.precioUnit ?? 0),
+    }))
+    seleccionarCliente(data.cliente, false)
   } catch (e: any) {
     formError.value = e?.response?.data?.message ?? 'Error al cargar reservación'
   }
@@ -651,17 +688,39 @@ function buscarClientes() {
   clienteTimer = setTimeout(async () => {
     try {
       const { data } = await clientesApi.getAll(clienteSearch.value)
-      clienteSugerencias.value = data.filter((c: any) => c.activo)
+      clienteSugerencias.value = normalizeList(data).filter((c: any) => c.activo)
     } catch { clienteSugerencias.value = [] }
   }, 300)
 }
 
-function seleccionarCliente(c: any) {
+async function cargarReservacionesCliente(clienteId: number) {
+  if (origen.value !== 'reservacion') return
+  resBuscando.value = true
+  resSugerencias.value = []
+  resSeleccionada.value = null
+  form.value.reservacionId = null
+  form.value.items = [itemVacio()]
+  try {
+    const { data } = await reservacionesApi.getAll({
+      clienteId,
+      estado: 'completada',
+    })
+    resSugerencias.value = normalizeList(data)
+  } catch {
+    resSugerencias.value = []
+    toast.error('No se pudieron cargar las reservaciones del cliente')
+  } finally {
+    resBuscando.value = false
+  }
+}
+
+function seleccionarCliente(c: any, cargarReservas = true) {
   clienteSeleccionado.value = c
   form.value.clienteId = c.idCliente
   clienteSearch.value = ''
   clienteSugerencias.value = []
   if (errors.clienteId) delete errors.clienteId
+  if (cargarReservas) cargarReservacionesCliente(c.idCliente)
 }
 
 function limpiarCliente() {
@@ -669,6 +728,13 @@ function limpiarCliente() {
   form.value.clienteId = null
   clienteSearch.value = ''
   clienteSugerencias.value = []
+  if (origen.value === 'reservacion') {
+    resSugerencias.value = []
+    resSeleccionada.value = null
+    form.value.reservacionId = null
+    form.value.items = [itemVacio()]
+    resSearch.value = ''
+  }
 }
 
 // ── Ítems ──────────────────────────────────────────────
@@ -679,8 +745,11 @@ function quitarItem(i: number) { if (form.value.items.length > 1) form.value.ite
 function validar(): boolean {
   Object.keys(errors).forEach(k => delete errors[k])
   if (!form.value.clienteId) errors.clienteId = 'Selecciona un cliente'
+  if (resSeleccionada.value?.factura && resSeleccionada.value.factura.estado !== 'anulada') {
+    errors.reservacionId = 'Esta reservacion ya tiene una factura emitida'
+  }
   if (form.value.tipo === 'credito_fiscal' && !form.value.clienteNit?.trim()) errors.clienteNit = 'NIT requerido para Crédito Fiscal'
-  const itemsValidos = form.value.items.every(i => i.descripcion.trim() && i.cantidad > 0 && i.precioUnit >= 0)
+  const itemsValidos = cleanItems().every(i => i.descripcion && i.cantidad > 0 && i.precioUnit >= 0)
   if (!itemsValidos) errors.items = 'Todos los ítems deben tener descripción, cantidad y precio válidos'
   return Object.keys(errors).length === 0
 }
@@ -699,10 +768,14 @@ function cerrarModal() { modalAbierto.value = false }
 
 function setOrigen(o: 'reservacion' | 'manual') {
   origen.value = o
-  form.value.reservacionId = null
-  form.value.items = [itemVacio()]
   formError.value = ''
-  limpiarReservacion()
+  if (o === 'manual') {
+    limpiarReservacion()
+  } else {
+    form.value.reservacionId = null
+    form.value.items = [itemVacio()]
+    limpiarCliente()
+  }
 }
 
 async function guardar() {
@@ -718,7 +791,7 @@ async function guardar() {
       clienteGiro: form.value.clienteGiro || undefined,
       clienteDireccion: form.value.clienteDireccion || undefined,
       notas: form.value.notas || undefined,
-      items: form.value.items,
+      items: cleanItems(),
     }
     const { data } = await facturacionApi.create(payload)
     toast.success(`Factura ${data.numeroFactura} emitida correctamente`)
@@ -755,7 +828,16 @@ async function confirmarAnulacion() {
 }
 
 // ── Modal detalle ──────────────────────────────────────
-function abrirDetalle(f: any) { detalleFactura.value = f; modalDetalle.value = true }
+async function abrirDetalle(f: any) {
+  detalleFactura.value = f
+  modalDetalle.value = true
+  try {
+    const { data } = await facturacionApi.getById(f.idFactura)
+    detalleFactura.value = data
+  } catch {
+    toast.error('No se pudo cargar el detalle completo de la factura')
+  }
+}
 function cerrarDetalle() { modalDetalle.value = false }
 
 async function descargarPDF() {
@@ -955,6 +1037,7 @@ td { padding: 11px 14px; color: var(--text-primary); vertical-align: middle; }
 .res-opt-sub { font-size: 0.72rem; color: var(--text-muted); }
 .res-ya-facturada { font-size: 0.7rem; color: #d97706; background: #fffbeb; border: 1px solid #fde68a; border-radius: 99px; padding: 2px 8px; flex-shrink: 0; }
 .res-loading { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted); padding: 8px 0; }
+.res-empty { font-size: 0.78rem; color: var(--text-muted); background: var(--bg-app); border: 1px dashed var(--border); border-radius: 9px; padding: 10px 12px; }
 .res-selected { background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 5px; }
 .res-sel-header { display: flex; align-items: center; gap: 10px; }
 .res-sel-num { font-size: 0.82rem; font-weight: 700; color: #16a34a; }
