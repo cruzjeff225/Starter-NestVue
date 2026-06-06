@@ -253,7 +253,7 @@
                   Cargando habitaciones...
                 </div>
 
-                <button
+                <div
                   v-for="habitacion in habFiltradas"
                   v-else
                   :key="habitacion.idHabitacion"
@@ -265,9 +265,19 @@
                   <div>
                     <strong>{{ habitacion.numero }} <em>{{ habitacion.tipo?.nombre }}</em></strong>
                     <small>Piso {{ habitacion.piso }} · {{ habitacion.capacidad }} personas</small>
+                    <button type="button" class="extras-toggle" @click.stop="toggleExtrasHabitacion(habitacion.idHabitacion)">
+                      {{ extrasAbiertos === habitacion.idHabitacion ? 'Ocultar extras' : 'Ver extras' }}
+                    </button>
+                    <div v-if="extrasAbiertos === habitacion.idHabitacion" class="room-extras">
+                      <span v-for="extra in extrasHabitacion(habitacion)" :key="extra">{{ extra }}</span>
+                      <span v-if="extrasHabitacion(habitacion).length === 0" class="room-no-extras">Sin extras configurados</span>
+                    </div>
                   </div>
-                  <b>${{ formatPrecio(habitacion.tipo?.precioBase) }}</b>
-                </button>
+                  <b>
+                    ${{ formatPrecio(precioHabitacion(habitacion)) }}
+                    <small v-if="tienePrecioConExtras(habitacion)" class="price-extra-note">con extras</small>
+                  </b>
+                </div>
 
                 <div v-if="!habCargando && habFiltradas.length === 0" class="empty room-empty">Sin habitaciones disponibles.</div>
               </div>
@@ -402,6 +412,7 @@ const filtroTipo = ref('')
 const ordenHab = ref('numero_asc')
 const habCargando = ref(false)
 const precioNocheSeleccionado = ref(0)
+const extrasAbiertos = ref<number | null>(null)
 
 const modalEstado = ref(false)
 const reservacionEstado = ref<any>(null)
@@ -440,8 +451,7 @@ const resumenOperativo = computed(() => {
   return [
     { label: 'Reservas', value: total },
     { label: 'Activas', value: activas },
-    { label: 'Pendientes', value: pendientes },
-    { label: 'Ingreso estimado', value: `$${formatPrecio(ingresos)}` },
+    { label: 'Pendientes', value: pendientes  },
   ]
 })
 
@@ -539,8 +549,8 @@ function aplicarFiltrosHab() {
   resultado = [...resultado].sort((a, b) => {
     switch (ordenHab.value) {
       case 'numero_desc': return b.numero.localeCompare(a.numero, undefined, { numeric: true })
-      case 'precio_asc': return Number(a.tipo?.precioBase) - Number(b.tipo?.precioBase)
-      case 'precio_desc': return Number(b.tipo?.precioBase) - Number(a.tipo?.precioBase)
+      case 'precio_asc': return precioHabitacion(a) - precioHabitacion(b)
+      case 'precio_desc': return precioHabitacion(b) - precioHabitacion(a)
       default: return a.numero.localeCompare(b.numero, undefined, { numeric: true })
     }
   })
@@ -562,11 +572,46 @@ function esSeleccionable(habitacion: any) {
   return habitacion.estado === 'disponible' || (editando.value && habitacion.idHabitacion === editando.value.habitacionId)
 }
 
+function precioHabitacion(habitacion: any) {
+  const precioFinal = Number(habitacion?.precioFinal ?? 0)
+  return precioFinal > 0 ? precioFinal : Number(habitacion?.tipo?.precioBase ?? 0)
+}
+
+function tienePrecioConExtras(habitacion: any) {
+  const base = Number(habitacion?.tipo?.precioBase ?? 0)
+  return precioHabitacion(habitacion) > base
+}
+
+function toggleExtrasHabitacion(idHabitacion: number) {
+  extrasAbiertos.value = extrasAbiertos.value === idHabitacion ? null : idHabitacion
+}
+
+function extrasHabitacion(habitacion: any) {
+  const extras: string[] = []
+  if (habitacion?.vista && habitacion.vista !== 'ninguna') {
+    extras.push(`Vista: ${labelExtra(habitacion.vista)}`)
+  }
+  for (const cercania of habitacion?.cercaniasStr ?? []) {
+    extras.push(`Cercanía: ${labelExtra(cercania)}`)
+  }
+  for (const amenidad of habitacion?.amenidades ?? []) {
+    extras.push(labelExtra(amenidad))
+  }
+  return extras
+}
+
+function labelExtra(value: any) {
+  return String(value ?? '')
+    .replace(/_/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
 function seleccionarHabitacion(habitacion: any) {
   if (!esSeleccionable(habitacion)) return
   habSeleccionada.value = habitacion
   form.value.habitacionId = habitacion.idHabitacion
-  precioNocheSeleccionado.value = Number(habitacion.tipo?.precioBase ?? 0)
+  precioNocheSeleccionado.value = precioHabitacion(habitacion)
 }
 
 function limpiarHabitacion() {
@@ -1423,8 +1468,62 @@ tbody tr:hover {
 }
 
 .room-card b {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 2px;
   color: var(--text-primary);
   font-size: 0.84rem;
+}
+
+.price-extra-note {
+  color: #047857 !important;
+  font-size: 0.64rem !important;
+  font-weight: 700;
+  margin-top: 0 !important;
+  white-space: nowrap;
+}
+
+.extras-toggle {
+  margin-top: 7px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #4f46e5;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.extras-toggle:hover {
+  text-decoration: underline;
+}
+
+.room-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.room-extras span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f0fdf4;
+  color: #047857;
+  border: 1px solid #bbf7d0;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.room-extras .room-no-extras {
+  background: #f8fafc;
+  color: var(--text-muted);
+  border-color: var(--border);
 }
 
 .room-dot {

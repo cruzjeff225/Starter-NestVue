@@ -13,7 +13,7 @@
           <span class="stat-chip emitida">{{ statsEmitidas }} emitidas</span>
           <span class="stat-chip anulada">{{ statsAnuladas }} anuladas</span>
         </div>
-        <button v-if="auth.tienePermiso('facturacion:crear')" class="btn-primary" @click="abrirModal">
+        <button v-if="auth.tienePermiso('facturacion:crear')" type="button" class="btn-primary" @click="abrirModal">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Nueva factura
         </button>
@@ -101,10 +101,10 @@
             </td>
             <td>
               <div class="action-row">
-                <button class="act-btn view" title="Ver detalle" @click="abrirDetalle(f)">
+                <button type="button" class="act-btn view" title="Ver detalle" @click="abrirDetalle(f)">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 </button>
-                <button v-if="auth.tienePermiso('facturacion:anular') && f.estado === 'emitida'" class="act-btn danger" title="Anular" @click="abrirModalAnular(f)">
+                <button v-if="auth.tienePermiso('facturacion:anular') && f.estado === 'emitida'" type="button" class="act-btn danger" title="Anular" @click="abrirModalAnular(f)">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                 </button>
               </div>
@@ -118,11 +118,11 @@
 
       <!-- Paginación -->
       <div v-if="paginacion.totalPages > 1" class="pagination">
-        <button class="pag-btn" :disabled="paginacion.page === 1" @click="cargar(paginacion.page - 1)">
+        <button type="button" class="pag-btn" :disabled="paginacion.page === 1" @click="cargar(paginacion.page - 1)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <span class="pag-info">Página {{ paginacion.page }} de {{ paginacion.totalPages }}</span>
-        <button class="pag-btn" :disabled="paginacion.page === paginacion.totalPages" @click="cargar(paginacion.page + 1)">
+        <button type="button" class="pag-btn" :disabled="paginacion.page === paginacion.totalPages" @click="cargar(paginacion.page + 1)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
@@ -136,7 +136,7 @@
         <div class="modal modal-xl">
           <div class="modal-head">
             <h2 class="modal-title">Nueva factura</h2>
-            <button class="close-btn" @click="cerrarModal">✕</button>
+            <button type="button" class="close-btn" @click="cerrarModal">✕</button>
           </div>
 
           <div class="modal-body">
@@ -144,12 +144,12 @@
             <!-- Tipo de documento -->
             <div class="section-label">Tipo de documento</div>
             <div class="tipo-selector">
-              <button class="tipo-opt" :class="{ sel: form.tipo === 'consumidor_final' }" @click="form.tipo = 'consumidor_final'">
+              <button type="button" class="tipo-opt" :class="{ sel: form.tipo === 'consumidor_final' }" @click="form.tipo = 'consumidor_final'">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span class="tipo-opt-name">Consumidor Final</span>
                 <span class="tipo-opt-sub">Sin desglose de IVA</span>
               </button>
-              <button class="tipo-opt" :class="{ sel: form.tipo === 'credito_fiscal' }" @click="form.tipo = 'credito_fiscal'">
+              <button type="button" class="tipo-opt" :class="{ sel: form.tipo === 'credito_fiscal' }" @click="form.tipo = 'credito_fiscal'">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                 <span class="tipo-opt-name">Crédito Fiscal</span>
                 <span class="tipo-opt-sub">IVA desglosado · requiere NIT</span>
@@ -159,8 +159,8 @@
             <!-- Origen -->
             <div class="section-label">Origen</div>
             <div class="origen-btns">
-              <button class="origen-btn" :class="{ sel: origen === 'reservacion' }" @click="setOrigen('reservacion')">📅 Desde reservación</button>
-              <button class="origen-btn" :class="{ sel: origen === 'manual' }" @click="setOrigen('manual')">✏️ Manual</button>
+              <button type="button" class="origen-btn" :class="{ sel: origen === 'reservacion' }" @click="setOrigen('reservacion')">📅 Desde reservación</button>
+              <button type="button" class="origen-btn" :class="{ sel: origen === 'manual' }" @click="setOrigen('manual')">✏️ Manual</button>
             </div>
 
             <!-- Buscar reservación -->
@@ -171,7 +171,7 @@
                 <input v-model="resSearch" class="inp" style="padding-left:32px" placeholder="Buscar por cliente o número de habitación..." @input="buscarReservaciones" />
               </div>
               <div v-if="resSugerencias.length" class="res-dropdown">
-                <button v-for="r in resSugerencias" :key="r.idReservacion" class="res-opt" @click="seleccionarReservacion(r)">
+                <button v-for="r in resSugerencias" :key="r.idReservacion" type="button" class="res-opt" @click="seleccionarReservacion(r)">
                   <span class="res-opt-num">#{{ r.idReservacion }}</span>
                   <div class="res-opt-info">
                     <span class="res-opt-name">{{ r.cliente.nombre }} {{ r.cliente.apellido }}</span>
@@ -195,7 +195,7 @@
                   <span>Hab. {{ resSeleccionada.habitacion.numero }} — {{ resSeleccionada.habitacion.tipo.nombre }}</span>
                   <span>{{ formatFecha(resSeleccionada.fechaEntrada) }} → {{ formatFecha(resSeleccionada.fechaSalida) }}</span>
                 </div>
-                <button class="res-clear" @click="limpiarReservacion">× Cambiar</button>
+                <button type="button" class="res-clear" @click="limpiarReservacion">× Cambiar</button>
               </div>
               <span v-if="errors.reservacionId" class="field-err">{{ errors.reservacionId }}</span>
             </div>
@@ -209,7 +209,7 @@
                 <input v-model="clienteSearch" class="inp" style="padding-left:32px" :disabled="origen === 'reservacion' && !!form.reservacionId" placeholder="Nombre, email..." @input="buscarClientes" />
               </div>
               <div v-if="clienteSugerencias.length && !form.clienteId" class="res-dropdown">
-                <button v-for="c in clienteSugerencias" :key="c.idCliente" class="res-opt" @click="seleccionarCliente(c)">
+                <button v-for="c in clienteSugerencias" :key="c.idCliente" type="button" class="res-opt" @click="seleccionarCliente(c)">
                   <div class="u-avatar sm">{{ c.nombre.charAt(0) }}</div>
                   <div class="res-opt-info">
                     <span class="res-opt-name">{{ c.nombre }} {{ c.apellido }}</span>
@@ -221,7 +221,7 @@
                 <div class="u-avatar sm">{{ clienteSeleccionado.nombre.charAt(0) }}</div>
                 <span class="cc-name">{{ clienteSeleccionado.nombre }} {{ clienteSeleccionado.apellido }}</span>
                 <span class="cc-email">{{ clienteSeleccionado.email }}</span>
-                <button v-if="!(origen === 'reservacion' && form.reservacionId)" class="res-clear" @click="limpiarCliente">×</button>
+                <button v-if="!(origen === 'reservacion' && form.reservacionId)" type="button" class="res-clear" @click="limpiarCliente">×</button>
               </div>
               <span v-if="errors.clienteId" class="field-err">{{ errors.clienteId }}</span>
             </div>
@@ -233,7 +233,7 @@
                 Cargando reservaciones...
               </div>
               <div v-else-if="resSugerencias.length" class="res-dropdown">
-                <button v-for="r in resSugerencias" :key="r.idReservacion" class="res-opt" @click="seleccionarReservacion(r)">
+                <button v-for="r in resSugerencias" :key="r.idReservacion" type="button" class="res-opt" @click="seleccionarReservacion(r)">
                   <span class="res-opt-num">#{{ r.idReservacion }}</span>
                   <div class="res-opt-info">
                     <span class="res-opt-name">Habitacion {{ r.habitacion.numero }}</span>
@@ -270,45 +270,69 @@
 
             <!-- Ítems -->
             <div class="items-header">
-              <div class="section-label" style="margin:0">Ítems de factura</div>
-              <button class="btn-add-item" @click="agregarItem">
+              <div class="items-title">
+                <div class="section-label" style="margin:0">Ítems de factura</div>
+                <span class="items-count">{{ form.items.length }} {{ form.items.length === 1 ? 'ítem' : 'ítems' }}</span>
+              </div>
+              <button type="button" class="btn-add-item" @click.prevent="agregarItem">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Agregar ítem
               </button>
             </div>
             <span v-if="errors.items" class="field-err">{{ errors.items }}</span>
-            <div class="items-card">
-              <table class="items-table">
-                <thead>
-                  <tr>
-                    <th>Descripción</th>
-                    <th class="tc">Cant.</th>
-                    <th class="tc">Precio unit.</th>
-                    <th class="tr">Subtotal</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(item, i) in form.items" :key="i">
-                    <td>
-                      <input v-model="item.descripcion" class="item-inp" placeholder="Descripción..." />
-                    </td>
-                    <td><input v-model.number="item.cantidad" type="number" min="1" class="item-inp item-num" /></td>
-                    <td>
-                      <div class="item-precio-wrap">
-                        <span class="item-dollar">$</span>
-                        <input v-model.number="item.precioUnit" type="number" min="0" step="0.01" class="item-inp item-num" style="border-left:none;border-radius:0 7px 7px 0" />
-                      </div>
-                    </td>
-                    <td class="item-sub">${{ fmt(item.cantidad * item.precioUnit) }}</td>
-                    <td>
-                      <button class="item-del" :disabled="form.items.length === 1" @click="quitarItem(i)">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="items-list">
+              <div v-for="(item, i) in form.items" :key="item.uid" class="item-row-card">
+                <div class="item-row-top">
+                  <span class="item-index">Ítem {{ i + 1 }}</span>
+                  <button type="button" class="item-del-text" :disabled="form.items.length === 1" @click="quitarItem(i)">
+                    Quitar
+                  </button>
+                </div>
+
+                <div class="item-fields">
+                  <div class="item-field item-desc-field">
+                    <label class="item-label">Descripción *</label>
+                    <input
+                      :ref="(el) => setItemDescripcionRef(item.uid, el)"
+                      v-model="item.descripcion"
+                      class="item-inp"
+                      :class="{ 'item-inp-err': !String(item.descripcion ?? '').trim() && errors.items }"
+                      placeholder="Ej: Estadía habitación 101, consumo restaurante..."
+                    />
+                  </div>
+
+                  <div class="item-field item-qty-field">
+                    <label class="item-label">Cantidad *</label>
+                    <input
+                      v-model.number="item.cantidad"
+                      type="number"
+                      min="1"
+                      class="item-inp item-num"
+                      :class="{ 'item-inp-err': Number(item.cantidad || 0) < 1 && errors.items }"
+                    />
+                  </div>
+
+                  <div class="item-field item-price-field">
+                    <label class="item-label">Precio unitario *</label>
+                    <div class="item-precio-wrap">
+                      <span class="item-dollar">$</span>
+                      <input
+                        v-model.number="item.precioUnit"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        class="item-inp item-num item-price-input"
+                        :class="{ 'item-inp-err': Number(item.precioUnit ?? -1) < 0 && errors.items }"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="item-field item-sub-field">
+                    <label class="item-label">Subtotal</label>
+                    <div class="item-sub-box">${{ fmt(toNumber(item.cantidad) * toNumber(item.precioUnit)) }}</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Resumen fiscal -->
@@ -330,8 +354,8 @@
           </div>
 
           <div class="modal-foot">
-            <button class="btn-ghost" @click="cerrarModal">Cancelar</button>
-            <button class="btn-primary" :disabled="guardando" @click="guardar">
+            <button type="button" class="btn-ghost" @click="cerrarModal">Cancelar</button>
+            <button type="button" class="btn-primary" :disabled="guardando" @click="guardar">
               <svg v-if="guardando" class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
               {{ guardando ? 'Emitiendo...' : 'Emitir factura' }}
             </button>
@@ -351,7 +375,7 @@
               <h2 class="modal-title">Anular factura</h2>
               <p class="modal-sub">{{ facturaAnular?.numeroFactura }}</p>
             </div>
-            <button class="close-btn" @click="cerrarModalAnular">✕</button>
+            <button type="button" class="close-btn" @click="cerrarModalAnular">✕</button>
           </div>
           <div class="modal-body">
             <div class="warn-box">
@@ -365,8 +389,8 @@
             <div v-if="anularError" class="alert-err">{{ anularError }}</div>
           </div>
           <div class="modal-foot">
-            <button class="btn-ghost" @click="cerrarModalAnular">Cancelar</button>
-            <button class="btn-danger" :disabled="anularLoading || !motivoAnulacion.trim()" @click="confirmarAnulacion">
+            <button type="button" class="btn-ghost" @click="cerrarModalAnular">Cancelar</button>
+            <button type="button" class="btn-danger" :disabled="anularLoading || !motivoAnulacion.trim()" @click="confirmarAnulacion">
               <svg v-if="anularLoading" class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
               {{ anularLoading ? 'Anulando...' : 'Anular factura' }}
             </button>
@@ -387,11 +411,11 @@
               <p class="modal-sub">{{ detalleFactura?.tipo === 'consumidor_final' ? 'Consumidor Final' : 'Crédito Fiscal' }} · {{ formatFecha(detalleFactura?.fechaEmision) }}</p>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
-              <button class="btn-primary" :disabled="generandoPDF" @click="descargarPDF">
+              <button type="button" class="btn-primary" :disabled="generandoPDF" @click="descargarPDF">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 {{ generandoPDF ? 'Generando...' : 'PDF' }}
               </button>
-              <button class="close-btn" @click="cerrarDetalle">✕</button>
+              <button type="button" class="close-btn" @click="cerrarDetalle">✕</button>
             </div>
           </div>
           <div class="modal-body">
@@ -510,7 +534,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import { facturacionApi, clientesApi, reservacionesApi } from '../../services/api'
 import { useToast } from '../../composables/useToast'
@@ -546,8 +570,24 @@ const clienteSearch = ref('')
 const clienteSugerencias = ref<any[]>([])
 const clienteSeleccionado = ref<any>(null)
 let clienteTimer: ReturnType<typeof setTimeout>
+const itemDescripcionRefs = new Map<string, HTMLInputElement>()
 
-const itemVacio = () => ({ descripcion: '', cantidad: 1, precioUnit: 0 })
+type FacturaItemForm = {
+  uid: string
+  descripcion: string
+  cantidad: number
+  precioUnit: number
+}
+
+let itemSeq = 0
+const nuevoItemId = () => `item-${Date.now()}-${++itemSeq}`
+const normalizarItem = (item: Partial<FacturaItemForm> = {}): FacturaItemForm => ({
+  uid: item.uid ?? nuevoItemId(),
+  descripcion: String(item.descripcion ?? ''),
+  cantidad: Math.max(1, Number(item.cantidad || 1)),
+  precioUnit: Number(item.precioUnit || 0),
+})
+const itemVacio = () => normalizarItem()
 const formVacio = () => ({
   tipo: 'consumidor_final' as 'consumidor_final' | 'credito_fiscal',
   clienteId: null as any,
@@ -557,6 +597,14 @@ const formVacio = () => ({
   items: [itemVacio()],
 })
 const form = ref(formVacio())
+
+function setItemDescripcionRef(uid: string, el: any) {
+  if (el instanceof HTMLInputElement) {
+    itemDescripcionRefs.set(uid, el)
+  } else {
+    itemDescripcionRefs.delete(uid)
+  }
+}
 
 // ── Modal anular ───────────────────────────────────────
 const modalAnular = ref(false)
@@ -577,7 +625,7 @@ const TURISMO = 0.05
 const toNumber = (value: any) => Number(value ?? 0)
 const normalizeList = (payload: any) => Array.isArray(payload) ? payload : (payload?.data ?? [])
 const cleanItems = () =>
-  form.value.items.map((item) => ({
+  form.value.items.map((item: FacturaItemForm) => ({
     descripcion: String(item.descripcion ?? '').trim(),
     cantidad: Math.max(1, Number(item.cantidad || 1)),
     precioUnit: Number(item.precioUnit || 0),
@@ -662,11 +710,7 @@ async function seleccionarReservacion(r: any) {
     }
     resSeleccionada.value = { ...r, factura: data.facturaExistente }
     form.value.reservacionId = r.idReservacion
-    form.value.items = normalizeList(data.items).map((item: any) => ({
-      descripcion: item.descripcion ?? '',
-      cantidad: Number(item.cantidad ?? 1),
-      precioUnit: Number(item.precioUnit ?? 0),
-    }))
+    form.value.items = normalizeList(data.items).map((item: any) => normalizarItem(item))
     seleccionarCliente(data.cliente, false)
   } catch (e: any) {
     formError.value = e?.response?.data?.message ?? 'Error al cargar reservación'
@@ -738,8 +782,22 @@ function limpiarCliente() {
 }
 
 // ── Ítems ──────────────────────────────────────────────
-function agregarItem() { form.value.items.push(itemVacio()) }
-function quitarItem(i: number) { if (form.value.items.length > 1) form.value.items.splice(i, 1) }
+async function agregarItem() {
+  const items = Array.isArray(form.value.items) ? form.value.items : []
+  const nuevoItem = itemVacio()
+  form.value.items = [...items, nuevoItem]
+  if (errors.items) delete errors.items
+  await nextTick()
+  const input = itemDescripcionRefs.get(nuevoItem.uid)
+  input?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  input?.focus()
+}
+
+function quitarItem(i: number) {
+  if (form.value.items.length <= 1) return
+  form.value.items = form.value.items.filter((_, index) => index !== i)
+  if (errors.items) delete errors.items
+}
 
 // ── Validación ─────────────────────────────────────────
 function validar(): boolean {
@@ -749,6 +807,8 @@ function validar(): boolean {
     errors.reservacionId = 'Esta reservacion ya tiene una factura emitida'
   }
   if (form.value.tipo === 'credito_fiscal' && !form.value.clienteNit?.trim()) errors.clienteNit = 'NIT requerido para Crédito Fiscal'
+  if (!form.value.items.length) form.value.items = [itemVacio()]
+  form.value.items = form.value.items.map((item: FacturaItemForm) => normalizarItem(item))
   const itemsValidos = cleanItems().every(i => i.descripcion && i.cantidad > 0 && i.precioUnit >= 0)
   if (!itemsValidos) errors.items = 'Todos los ítems deben tener descripción, cantidad y precio válidos'
   return Object.keys(errors).length === 0
@@ -1049,26 +1109,37 @@ td { padding: 11px 14px; color: var(--text-primary); vertical-align: middle; }
 .cc-name { font-size: 0.84rem; font-weight: 600; color: #4338ca; }
 .cc-email { font-size: 0.72rem; color: #818cf8; flex: 1; }
 
-/* Items table */
-.items-header { display: flex; align-items: center; justify-content: space-between; }
+/* Items */
+.items-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.items-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.items-count { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; font-size: 0.7rem; font-weight: 700; }
 .btn-add-item { display: flex; align-items: center; gap: 5px; padding: 6px 12px; border: 1.5px solid var(--border); border-radius: 7px; background: var(--bg-app); color: var(--text-secondary); font-size: 0.78rem; font-family: 'Sora', sans-serif; cursor: pointer; transition: all 0.15s; }
 .btn-add-item:hover { border-color: #6366f1; color: #6366f1; background: #eef2ff; }
-.items-card { border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; }
-.items-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-.items-table thead tr { background: var(--bg-app); border-bottom: 1px solid var(--border); }
-.items-table th { padding: 8px 12px; font-size: 0.69rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-.items-table tbody tr { border-bottom: 1px solid var(--border); }
-.items-table tbody tr:last-child { border-bottom: none; }
-.items-table td { padding: 6px 8px; }
-.item-inp { width: 100%; padding: 7px 10px; border: 1.5px solid transparent; border-radius: 7px; font-size: 0.82rem; font-family: 'Sora', sans-serif; color: var(--text-primary); background: transparent; outline: none; transition: all 0.15s; }
-.item-inp:focus { border-color: #6366f1; background: var(--bg-card); }
-.item-num { width: 80px; text-align: right; }
+.items-list { display: flex; flex-direction: column; gap: 10px; }
+.item-row-card { border: 1.5px solid var(--border); border-radius: 12px; background: var(--bg-app); padding: 12px; }
+.item-row-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.item-index { font-size: 0.75rem; font-weight: 700; color: #4f46e5; }
+.item-fields { display: grid; grid-template-columns: minmax(220px, 1fr) 92px 130px 110px; gap: 10px; align-items: end; }
+.item-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.item-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.item-inp { width: 100%; height: 38px; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.82rem; font-family: 'Sora', sans-serif; color: var(--text-primary); background: var(--bg-card); outline: none; transition: all 0.15s; }
+.item-inp::placeholder { color: #9ca3af; }
+.item-inp:focus { border-color: #6366f1; background: var(--bg-card); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+.item-inp-err { border-color: #ef4444; background: #fff7f7; }
+.item-num { text-align: right; }
 .item-precio-wrap { display: flex; align-items: center; }
-.item-dollar { padding: 7px 8px 7px 10px; border: 1.5px solid transparent; border-radius: 7px 0 0 7px; font-size: 0.8rem; color: var(--text-muted); background: transparent; }
-.item-sub { text-align: right; font-weight: 600; padding: 6px 12px; white-space: nowrap; }
-.item-del { width: 26px; height: 26px; border-radius: 6px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-.item-del:hover:not(:disabled) { background: #fef2f2; color: #ef4444; }
-.item-del:disabled { opacity: 0.3; cursor: not-allowed; }
+.item-dollar { height: 38px; display: flex; align-items: center; padding: 0 9px; border: 1.5px solid var(--border); border-right: none; border-radius: 8px 0 0 8px; font-size: 0.8rem; color: var(--text-muted); background: var(--bg-card); }
+.item-price-input { border-radius: 0 8px 8px 0; }
+.item-sub-box { height: 38px; display: flex; align-items: center; justify-content: flex-end; padding: 0 10px; border-radius: 8px; background: #eef2ff; color: #3730a3; font-size: 0.86rem; font-weight: 700; white-space: nowrap; }
+.item-del-text { border: 1.5px solid #fecaca; background: #fef2f2; color: #dc2626; border-radius: 7px; padding: 4px 9px; font-size: 0.72rem; font-family: 'Sora', sans-serif; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+.item-del-text:hover:not(:disabled) { background: #fee2e2; border-color: #fca5a5; }
+.item-del-text:disabled { opacity: 0.45; cursor: not-allowed; }
+
+@media (max-width: 760px) {
+  .items-header { align-items: flex-start; flex-direction: column; }
+  .item-fields { grid-template-columns: 1fr 1fr; }
+  .item-desc-field { grid-column: 1 / -1; }
+}
 
 /* Resumen */
 .resumen { background: var(--bg-app); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }

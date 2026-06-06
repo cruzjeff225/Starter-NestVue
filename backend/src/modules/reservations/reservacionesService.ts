@@ -110,7 +110,7 @@ export class ReservacionesService {
       throw new BadRequestException('El cliente no está activo');
 
     const noches = this.calcularNoches(entrada, salida);
-    const precioNoche = Number(habitacion.tipo.precioBase);
+    const precioNoche = this.obtenerPrecioNocheHabitacion(habitacion);
     const totalBruto = precioNoche * noches;
     const totalCalculado = totalBruto * (1 - descuento / 100);
 
@@ -160,7 +160,8 @@ export class ReservacionesService {
         where: { idHabitacion: habitacionId },
         include: { tipo: true },
       });
-      precioNoche = Number(hab!.tipo.precioBase);
+      if (!hab) throw new NotFoundException('HabitaciÃ³n no encontrada');
+      precioNoche = this.obtenerPrecioNocheHabitacion(hab);
     }
 
     const noches = this.calcularNoches(entrada, salida);
@@ -232,6 +233,14 @@ export class ReservacionesService {
   private calcularNoches(entrada: Date, salida: Date): number {
     const diff = salida.getTime() - entrada.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }
+
+  private obtenerPrecioNocheHabitacion(habitacion: {
+    precioFinal?: any;
+    tipo: { precioBase: any };
+  }): number {
+    const precioFinal = Number(habitacion.precioFinal ?? 0);
+    return precioFinal > 0 ? precioFinal : Number(habitacion.tipo.precioBase);
   }
 
   private parseReservationDate(value: string): Date {
